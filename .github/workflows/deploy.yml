@@ -4,10 +4,9 @@
 #   SSH_HOST          — хост (например *.vps.myjino.ru из панели)
 #   SSH_USER          — логин SSH (например root)
 #
-# Аутентификация — один из вариантов:
-#   SSH_PRIVATE_KEY   — приватный ключ (OpenSSH PEM); надёжнее для CI (рекомендуется)
-#   SSH_PASSWORD      — пароль SSH (на многих VPS для root отключён PasswordAuthentication —
-#                       тогда без ключа деплой не пройдёт; включите в sshd или используйте ключ)
+# Аутентификация (достаточно одного способа):
+#   SSH_PRIVATE_KEY   — приватный ключ OpenSSH; предпочтительно (часто пароль для root по SSH запрещён)
+#   SSH_PASSWORD      — запасной вариант (если на сервере включены password/kbd-interactive)
 #
 # Опционально:
 #   SSH_PORT          — порт SSH из панели хостинга (если не задан — 22)
@@ -52,18 +51,48 @@ jobs:
           chmod 644 ~/.ssh/known_hosts
 
       - name: Run remote deploy
-        uses: appleboy/ssh-action@v1.2.2
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          password: ${{ secrets.SSH_PASSWORD }}
-          port: ${{ secrets.SSH_PORT || '22' }}
-          protocol: tcp
-          timeout: 60s
-          command_timeout: 25m
-          request_pty: true
-          script: |
-            set -euo pipefail
-            cd '${{ env.DEPLOY_TARGET_PATH }}'
-            bash scripts/server-deploy.sh
+        shell: bash
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
+          DEPLOY_TARGET_PATH: ${{ env.DEPLOY_TARGET_PATH }}
+        run: |
+          set -euo pipefail
+          PORT="${SSH_PORT:-22}"
+          TARGET="${SSH_USER}@${SSH_HOST}"
+          REMOTE_CMD="set -euo pipefail; cd $(printf '%q' "$DEPLOY_TARGET_PATH") && bash scripts/server-deploy.sh"
+
+          COMMON_OPTS=(
+            -p "$PORT"
+            -o StrictHostKeyChecking=yes
+            -o ConnectTimeout=60
+            -o ServerAliveInterval=30
+            -o ServerAliveCountMax=10
+          )
+
+          if [ -n "${SSH_PRIVATE_KEY:-}" ]; then
+            printf '%s\n' "$SSH_PRIVATE_KEY" > "$HOME/.ssh/ci_deploy_key"
+            chmod 600 "$HOME/.ssh/ci_deploy_key"
+            ssh "${COMMON_OPTS[@]}" \
+              -i "$HOME/.ssh/ci_deploy_key" \
+              -o BatchMode=yes \
+              -o IdentitiesOnly=yes \
+              "$TARGET" \
+              "$REMOTE_CMD"
+          elif [ -n "${SSH_PASSWORD:-}" ]; then
+            sudo apt-get update -qq
+            sudo apt-get install -y -qq sshpass
+            export SSHPASS="$SSH_PASSWORD"
+            sshpass -e ssh "${COMMON_OPTS[@]}" \
+              -o PreferredAuthentications=keyboard-interactive,password \
+              -o PubkeyAuthentication=no \
+              -tt \
+              "$TARGET" \
+              "$REMOTE_CMD"
+          else
+            echo "::error::Добавьте секрет SSH_PRIVATE_KEY (рекомендуется) или SSH_PASSWORD"
+            exit 1
+          fi
