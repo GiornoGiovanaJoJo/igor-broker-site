@@ -1,4 +1,4 @@
-# Деплой по SSH с паролем: sshpass → на сервере git pull + npm ci + build.
+# Деплой по SSH с паролем: sshpass → на сервере при необходимости clone → git pull + npm ci + build.
 #
 # Секреты (Settings → Secrets and variables → Actions):
 #   SSH_HOST      — хост VPS
@@ -6,8 +6,7 @@
 #   SSH_PASSWORD  — пароль для SSH
 #   SSH_PORT      — опционально; если нет — порт 22
 #
-# Путь к клону репозитория — env DEPLOY_TARGET_PATH ниже.
-# На сервере должен быть включён вход по паролю (или keyboard-interactive), иначе SSH откажет.
+# DEPLOY_TARGET_PATH — каталог клона на сервере (ниже). Если каталога нет — выполнится git clone.
 
 name: Deploy
 
@@ -43,7 +42,6 @@ jobs:
           : "${SSH_PASSWORD:?SSH_PASSWORD}"
           PORT="${SSH_PORT:-22}"
           TARGET="${SSH_USER}@${SSH_HOST}"
-          REMOTE_CMD="set -euo pipefail; cd $(printf '%q' "$DEPLOY_TARGET_PATH") && bash scripts/server-deploy.sh"
 
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
@@ -54,6 +52,16 @@ jobs:
           sudo apt-get install -y -qq sshpass
           export SSHPASS="$SSH_PASSWORD"
 
+          export DEPLOY_PATH="${DEPLOY_TARGET_PATH}"
+          export REPO_URL="https://github.com/${{ github.repository }}.git"
+          PARENT="$(dirname "$DEPLOY_PATH")"
+          REMOTE_SCRIPT="$(printf '%s\n' \
+            'set -euo pipefail' \
+            "mkdir -p $(printf '%q' "$PARENT")" \
+            "if [ ! -d $(printf '%q' "$DEPLOY_PATH")/.git ]; then git clone $(printf '%q' "$REPO_URL") $(printf '%q' "$DEPLOY_PATH"); fi" \
+            "cd $(printf '%q' "$DEPLOY_PATH")" \
+            'bash scripts/server-deploy.sh')"
+
           sshpass -e ssh \
             -p "$PORT" \
             -o StrictHostKeyChecking=yes \
@@ -63,4 +71,4 @@ jobs:
             -o PubkeyAuthentication=no \
             -tt \
             "$TARGET" \
-            "$REMOTE_CMD"
+            bash -s <<<"$REMOTE_SCRIPT"
