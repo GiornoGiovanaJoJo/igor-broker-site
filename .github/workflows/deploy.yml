@@ -1,24 +1,13 @@
-# Деплой: SSH на сервер → git fetch + жёсткий сброс на origin/main → npm ci → vite build.
+# Деплой по SSH с паролем (без ключей).
 #
-# Секреты (Settings → Secrets and variables → Actions → Secrets):
-#   SSH_HOST          — хост (например *.vps.myjino.ru из панели)
-#   SSH_USER          — логин SSH (например root)
+# Secrets → Actions → Repository secrets (попадают в env ниже):
+#   SSH_HOST     — хост VPS
+#   SSH_USER     — пользователь (например root)
+#   SSH_PASSWORD — пароль SSH
+#   SSH_PORT     — опционально; если нет — 22
 #
-# Аутентификация (достаточно одного способа):
-#   SSH_PRIVATE_KEY   — приватный ключ OpenSSH; предпочтительно (часто пароль для root по SSH запрещён)
-#   SSH_PASSWORD      — запасной вариант (если на сервере включены password/kbd-interactive)
-#
-# Если у приватного ключа есть passphrase:
-#   SSH_KEY_PASSPHRASE — та же фраза (секрет); на раннере ключ временно загружается в ssh-agent через SSH_ASKPASS.
-#
-# Опционально:
-#   SSH_PORT          — порт SSH из панели хостинга (если не задан — 22)
-#
-# Деплой запускается автоматически при каждом push в main и вручную (workflow_dispatch).
-#
-# Путь к клону репозитория на сервере задаётся ниже в env.DEPLOY_TARGET_PATH (не секрет).
-# На сервере: git clone в этот каталог, Node 20+ (лучше 22 — см. .nvmrc),
-# nginx root → <DEPLOY_TARGET_PATH>/dist, для SPA см. deploy/nginx.example.conf.
+# На сервере должен быть включён вход по паролю (PasswordAuthentication).
+# Путь к клону репозитория — env DEPLOY_TARGET_PATH в этом файле.
 
 name: Deploy
 
@@ -36,104 +25,40 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
-      # Абсолютный путь к клону репозитория на VPS (при необходимости поменяйте здесь).
       DEPLOY_TARGET_PATH: /var/www/igor-broker-site
+      SSH_HOST: ${{ secrets.SSH_HOST }}
+      SSH_USER: ${{ secrets.SSH_USER }}
+      SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
+      SSH_PORT: ${{ secrets.SSH_PORT }}
 
     steps:
-      - name: Configure SSH known_hosts
+      - name: SSH deploy (sshpass + password)
         shell: bash
-        env:
-          SSH_HOST: ${{ secrets.SSH_HOST }}
-          SSH_PORT: ${{ secrets.SSH_PORT }}
         run: |
           set -euo pipefail
-          mkdir -p ~/.ssh
-          chmod 700 ~/.ssh
-          PORT="${SSH_PORT:-22}"
-          ssh-keyscan -p "$PORT" -H "$SSH_HOST" >> ~/.ssh/known_hosts
-          chmod 644 ~/.ssh/known_hosts
+          test -n "${SSH_HOST:-}" || { echo "::error::Задайте секрет SSH_HOST"; exit 1; }
+          test -n "${SSH_USER:-}" || { echo "::error::Задайте секрет SSH_USER"; exit 1; }
+          test -n "${SSH_PASSWORD:-}" || { echo "::error::Задайте секрет SSH_PASSWORD"; exit 1; }
 
-      - name: Run remote deploy
-        shell: bash
-        env:
-          SSH_HOST: ${{ secrets.SSH_HOST }}
-          SSH_USER: ${{ secrets.SSH_USER }}
-          SSH_PORT: ${{ secrets.SSH_PORT }}
-          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-          SSH_KEY_PASSPHRASE: ${{ secrets.SSH_KEY_PASSPHRASE }}
-          SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
-          DEPLOY_TARGET_PATH: ${{ env.DEPLOY_TARGET_PATH }}
-        run: |
-          set -euo pipefail
           PORT="${SSH_PORT:-22}"
           TARGET="${SSH_USER}@${SSH_HOST}"
-          REMOTE_CMD="set -euo pipefail; cd $(printf '%q' "$DEPLOY_TARGET_PATH") && bash scripts/server-deploy.sh"
+          REMOTE_CMD="set -euo pipefail; cd $(printf '%q' "${DEPLOY_TARGET_PATH}") && bash scripts/server-deploy.sh"
 
-          COMMON_OPTS=(
-            -p "$PORT"
-            -o StrictHostKeyChecking=yes
-            -o ConnectTimeout=60
-            -o ServerAliveInterval=30
-            -o ServerAliveCountMax=10
-          )
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          ssh-keyscan -p "$PORT" -H "$SSH_HOST" >> ~/.ssh/known_hosts
 
-          if [ -n "${SSH_PRIVATE_KEY:-}" ]; then
-            KEY_FILE="$HOME/.ssh/ci_deploy_key"
-            # Убираем CR после копирования ключа из Windows — иначе ssh видит «битый» PEM.
-            printf '%s\n' "$SSH_PRIVATE_KEY" | tr -d '\r' > "$KEY_FILE"
-            chmod 600 "$KEY_FILE"
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq sshpass
 
-            if head -1 "$KEY_FILE" | grep -q '^ssh-'; then
-              echo "::error::В SSH_PRIVATE_KEY похоже положили публичный ключ (.pub). Нужен приватный: строки -----BEGIN OPENSSH PRIVATE KEY----- … -----END-----"
-              exit 1
-            fi
-
-            if [ -z "${SSH_KEY_PASSPHRASE:-}" ]; then
-              if ! ssh-keygen -y -f "$KEY_FILE" >/dev/null 2>&1; then
-                echo "::error::Ключ не читается без passphrase (ключ зашифрован?). Добавьте секрет SSH_KEY_PASSPHRASE или снимите passphrase с ключа."
-                exit 1
-              fi
-              ssh "${COMMON_OPTS[@]}" \
-                -i "$KEY_FILE" \
-                -o BatchMode=yes \
-                -o IdentitiesOnly=yes \
-                "$TARGET" \
-                "$REMOTE_CMD"
-            else
-              eval "$(ssh-agent -s)"
-              trap 'ssh-agent -k >/dev/null 2>&1 || true' EXIT
-              export SSH_ASKPASS_REQUIRE=force
-              export DISPLAY=:0
-              cat > /tmp/git-ci-askpass.sh << 'ASKPASS_EOF'
-#!/bin/sh
-printf '%s\n' "$SSH_KEY_PASSPHRASE"
-ASKPASS_EOF
-              chmod 700 /tmp/git-ci-askpass.sh
-              export SSH_ASKPASS=/tmp/git-ci-askpass.sh
-              ssh-add "$KEY_FILE" </dev/null || {
-                echo "::error::ssh-add не удался: проверьте SSH_KEY_PASSPHRASE и целостность SSH_PRIVATE_KEY."
-                exit 1
-              }
-              rm -f /tmp/git-ci-askpass.sh
-              # -i нужен вместе с IdentitiesOnly=yes; расшифровка возьмётся из ssh-agent.
-              ssh "${COMMON_OPTS[@]}" \
-                -i "$KEY_FILE" \
-                -o BatchMode=yes \
-                -o IdentitiesOnly=yes \
-                "$TARGET" \
-                "$REMOTE_CMD"
-            fi
-          elif [ -n "${SSH_PASSWORD:-}" ]; then
-            sudo apt-get update -qq
-            sudo apt-get install -y -qq sshpass
-            export SSHPASS="$SSH_PASSWORD"
-            sshpass -e ssh "${COMMON_OPTS[@]}" \
-              -o PreferredAuthentications=keyboard-interactive,password \
-              -o PubkeyAuthentication=no \
-              -tt \
-              "$TARGET" \
-              "$REMOTE_CMD"
-          else
-            echo "::error::Добавьте секрет SSH_PRIVATE_KEY (рекомендуется) или SSH_PASSWORD"
-            exit 1
-          fi
+          export SSHPASS="$SSH_PASSWORD"
+          sshpass -e ssh \
+            -p "$PORT" \
+            -o StrictHostKeyChecking=yes \
+            -o PubkeyAuthentication=no \
+            -o PreferredAuthentications=password,keyboard-interactive \
+            -o ConnectTimeout=60 \
+            -o ServerAliveInterval=30 \
+            -tt \
+            "$TARGET" \
+            "$REMOTE_CMD"
