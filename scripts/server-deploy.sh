@@ -14,8 +14,8 @@ git fetch origin "$BRANCH"
 git checkout "$BRANCH"
 git reset --hard "origin/$BRANCH"
 
-export NODE_ENV=production
+# Не ставить NODE_ENV=production до npm ci — иначе не ставятся devDependencies (vite, typescript).
 npm ci --no-audit --no-fund --loglevel=warn
-npm run build
+NODE_ENV=production npm run build
 
 echo "Deploy build OK: $REPO_ROOT/dist"
