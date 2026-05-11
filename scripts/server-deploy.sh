@@ -15,7 +15,7 @@ git checkout "$BRANCH"
 git reset --hard "origin/$BRANCH"
 
 export NODE_ENV=production
-npm ci
+npm ci --no-audit --no-fund --loglevel=warn
 npm run build
 
 echo "Deploy build OK: $REPO_ROOT/dist"

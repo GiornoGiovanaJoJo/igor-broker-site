@@ -60,6 +60,9 @@ jobs:
           REMOTE_SCRIPT="$(printf '%s\n' \
             'set -euo pipefail' \
             'export DEBIAN_FRONTEND=noninteractive' \
+            'export DEBCONF_NONINTERACTIVE_SEEN=true' \
+            'export NEEDRESTART_MODE=a' \
+            'export CI=true' \
             'shopt -s nullglob' \
             'if ! apt-get update -qq; then' \
             '  for f in /etc/apt/sources.list.d/*.list /etc/apt/sources.list.d/*.sources; do' \
@@ -82,13 +85,13 @@ jobs:
             "cd $(printf '%q' "$DEPLOY_PATH")" \
             'bash scripts/server-deploy.sh')"
 
-          sshpass -e ssh \
+          # Без -T/-tt: при выделении TTY bash -s часто не читает скрипт со stdin и «висит» минутами.
+          sshpass -e ssh -T \
             -p "$PORT" \
             -o StrictHostKeyChecking=yes \
             -o ConnectTimeout=60 \
             -o ServerAliveInterval=30 \
             -o PreferredAuthentications=password,keyboard-interactive \
             -o PubkeyAuthentication=no \
-            -tt \
             "$TARGET" \
             bash -s <<<"$REMOTE_SCRIPT"
