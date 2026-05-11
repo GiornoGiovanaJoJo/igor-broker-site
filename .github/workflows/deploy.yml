@@ -5,8 +5,9 @@
 #   SSH_USER          — логин SSH (например root)
 #
 # Аутентификация — один из вариантов:
-#   SSH_PRIVATE_KEY   — приватный ключ (PEM); предпочтительно для CI
-#   SSH_PASSWORD      — пароль SSH; если задан ключ, обычно используется ключ
+#   SSH_PRIVATE_KEY   — приватный ключ (OpenSSH PEM); надёжнее для CI (рекомендуется)
+#   SSH_PASSWORD      — пароль SSH (на многих VPS для root отключён PasswordAuthentication —
+#                       тогда без ключа деплой не пройдёт; включите в sshd или используйте ключ)
 #
 # Опционально:
 #   SSH_PORT          — порт SSH из панели хостинга (если не задан — 22)
@@ -61,7 +62,7 @@ jobs:
           protocol: tcp
           timeout: 60s
           command_timeout: 25m
-          script_stop: true
+          request_pty: true
           script: |
             set -euo pipefail
             cd '${{ env.DEPLOY_TARGET_PATH }}'
