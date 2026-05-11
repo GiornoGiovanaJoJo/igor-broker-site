@@ -11,9 +11,7 @@
 # Опционально:
 #   SSH_PORT          — порт SSH из панели хостинга (если не задан — 22)
 #
-# Переменная репозитория (Settings → Secrets and variables → Actions → Variables):
-#   DEPLOY_ENABLED    — выставьте true, чтобы деплой запускался при каждом push в main.
-#                       Без этого push не деплоит; ручной запуск (workflow_dispatch) всегда доступен.
+# Деплой запускается автоматически при каждом push в main и вручную (workflow_dispatch).
 #
 # Путь к клону репозитория на сервере задаётся ниже в env.DEPLOY_TARGET_PATH (не секрет).
 # На сервере: git clone в этот каталог, Node 20+ (лучше 22 — см. .nvmrc),
@@ -37,9 +35,6 @@ jobs:
     env:
       # Абсолютный путь к клону репозитория на VPS (при необходимости поменяйте здесь).
       DEPLOY_TARGET_PATH: /var/www/igor-broker-site
-    if: >-
-      github.event_name == 'workflow_dispatch'
-      || (github.event_name == 'push' && vars.DEPLOY_ENABLED == 'true')
 
     steps:
       - name: Configure SSH known_hosts
