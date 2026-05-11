@@ -23,9 +23,10 @@ NODE_ENV=production npm exec -- vite build
 # Неинтерактивный SSH часто без /usr/sbin в PATH → command -v nginx молча пропускал блок.
 export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 if command -v nginx >/dev/null 2>&1 || [ -x /usr/sbin/nginx ]; then
-  SITE_CONF="/etc/nginx/sites-available/igor-broker-site"
-  install -d "$(dirname "$SITE_CONF")" /etc/nginx/sites-enabled
-  cat >"$SITE_CONF" <<NGINX_EOF
+  # Только conf.d — без symlink в sites-enabled (на части VPS каталог отсутствует или не каталог → ln падает).
+  NGINX_SITE="/etc/nginx/conf.d/igor-broker-site.conf"
+  mkdir -p "$(dirname "$NGINX_SITE")"
+  cat >"$NGINX_SITE" <<NGINX_EOF
 server {
     listen 80 default_server;
     listen [::]:80 default_server;
@@ -47,15 +48,7 @@ server {
     }
 }
 NGINX_EOF
-  NGINX_MAIN="/etc/nginx/nginx.conf"
-  if grep -q sites-enabled "$NGINX_MAIN" 2>/dev/null; then
-    ln -sf "$SITE_CONF" /etc/nginx/sites-enabled/igor-broker-site
-    rm -f /etc/nginx/sites-enabled/default
-  else
-    install -d /etc/nginx/conf.d
-    cp -f "$SITE_CONF" /etc/nginx/conf.d/igor-broker-site.conf
-    rm -f /etc/nginx/conf.d/default.conf 2>/dev/null || true
-  fi
+  rm -f /etc/nginx/conf.d/default.conf /etc/nginx/sites-enabled/default 2>/dev/null || true
   nginx -t
   if command -v systemctl >/dev/null 2>&1; then
     systemctl reload nginx
