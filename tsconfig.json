@@ -14,5 +14,6 @@
     "strict": true,
     "resolveJsonModule": true
   },
-  "include": ["main.tsx", "app/**/*", "vite.config.ts", "vite-env.d.ts"]
+  "include": ["main.tsx", "app/**/*", "vite.config.ts", "vite-env.d.ts"],
+  "exclude": ["node_modules", "app/components/ui"]
 }

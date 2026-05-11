@@ -1,0 +1,73 @@
+# Деплой: SSH на сервер → git fetch + жёсткий сброс на origin/main → npm ci → vite build.
+#
+# Секреты (Settings → Secrets and variables → Actions → Secrets):
+#   SSH_HOST          — хост (например *.vps.myjino.ru из панели)
+#   SSH_USER          — логин SSH (например root)
+#
+# Аутентификация — один из вариантов:
+#   SSH_PRIVATE_KEY   — приватный ключ (PEM); предпочтительно для CI
+#   SSH_PASSWORD      — пароль SSH; если задан ключ, обычно используется ключ
+#
+# Опционально:
+#   SSH_PORT          — порт SSH из панели хостинга (если не задан — 22)
+#
+# Переменная репозитория (Settings → Secrets and variables → Actions → Variables):
+#   DEPLOY_ENABLED    — выставьте true, чтобы деплой запускался при каждом push в main.
+#                       Без этого push не деплоит; ручной запуск (workflow_dispatch) всегда доступен.
+#
+# Путь к клону репозитория на сервере задаётся ниже в env.DEPLOY_TARGET_PATH (не секрет).
+# На сервере: git clone в этот каталог, Node 20+ (лучше 22 — см. .nvmrc),
+# nginx root → <DEPLOY_TARGET_PATH>/dist, для SPA см. deploy/nginx.example.conf.
+
+name: Deploy
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      # Абсолютный путь к клону репозитория на VPS (при необходимости поменяйте здесь).
+      DEPLOY_TARGET_PATH: /var/www/igor-broker-site
+    if: >-
+      github.event_name == 'workflow_dispatch'
+      || (github.event_name == 'push' && vars.DEPLOY_ENABLED == 'true')
+
+    steps:
+      - name: Configure SSH known_hosts
+        shell: bash
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          PORT="${SSH_PORT:-22}"
+          ssh-keyscan -p "$PORT" -H "$SSH_HOST" >> ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
+
+      - name: Run remote deploy
+        uses: appleboy/ssh-action@v1.2.2
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          password: ${{ secrets.SSH_PASSWORD }}
+          port: ${{ secrets.SSH_PORT || '22' }}
+          protocol: tcp
+          timeout: 60s
+          command_timeout: 25m
+          script_stop: true
+          script: |
+            set -euo pipefail
+            cd '${{ env.DEPLOY_TARGET_PATH }}'
+            bash scripts/server-deploy.sh
