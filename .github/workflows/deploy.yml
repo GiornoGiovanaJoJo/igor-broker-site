@@ -74,10 +74,23 @@ jobs:
           )
 
           if [ -n "${SSH_PRIVATE_KEY:-}" ]; then
-            printf '%s\n' "$SSH_PRIVATE_KEY" > "$HOME/.ssh/ci_deploy_key"
-            chmod 600 "$HOME/.ssh/ci_deploy_key"
+            KEY_FILE="$HOME/.ssh/ci_deploy_key"
+            # Убираем CR после копирования ключа из Windows — иначе ssh видит «битый» PEM.
+            printf '%s\n' "$SSH_PRIVATE_KEY" | tr -d '\r' > "$KEY_FILE"
+            chmod 600 "$KEY_FILE"
+
+            if head -1 "$KEY_FILE" | grep -q '^ssh-'; then
+              echo "::error::В SSH_PRIVATE_KEY похоже положили публичный ключ (.pub). Нужен приватный: строки -----BEGIN OPENSSH PRIVATE KEY----- … -----END-----"
+              exit 1
+            fi
+
+            if ! ssh-keygen -y -f "$KEY_FILE" >/dev/null 2>&1; then
+              echo "::error::Приватный ключ не подходит: passphrase, обрезанный текст или не OpenSSH. Сгенерируйте ключ без passphrase и вставьте секрет целиком."
+              exit 1
+            fi
+
             ssh "${COMMON_OPTS[@]}" \
-              -i "$HOME/.ssh/ci_deploy_key" \
+              -i "$KEY_FILE" \
               -o BatchMode=yes \
               -o IdentitiesOnly=yes \
               "$TARGET" \
