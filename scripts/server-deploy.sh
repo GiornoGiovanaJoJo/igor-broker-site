@@ -19,4 +19,40 @@ rm -rf node_modules
 NODE_ENV=development npm ci --no-audit --no-fund --loglevel=warn
 NODE_ENV=production npm exec -- vite build
 
+# nginx по умолчанию отдаёт Welcome — подключаем собранный dist как основной сайт на :80.
+if command -v nginx >/dev/null 2>&1; then
+  SITE_CONF="/etc/nginx/sites-available/igor-broker-site"
+  install -d "$(dirname "$SITE_CONF")"
+  cat >"$SITE_CONF" <<NGINX_EOF
+server {
+    listen 80 default_server;
+    listen [::]:80 default_server;
+    server_name _;
+    root $REPO_ROOT/dist;
+    index index.html;
+
+    location / {
+        try_files \$uri \$uri/ /index.html;
+    }
+
+    location /assets/ {
+        try_files \$uri =404;
+        add_header Cache-Control "public, max-age=31536000, immutable";
+    }
+
+    location = /favicon.svg {
+        add_header Cache-Control "public, max-age=86400";
+    }
+}
+NGINX_EOF
+  ln -sf "$SITE_CONF" /etc/nginx/sites-enabled/igor-broker-site
+  rm -f /etc/nginx/sites-enabled/default
+  nginx -t
+  if command -v systemctl >/dev/null 2>&1; then
+    systemctl reload nginx
+  else
+    service nginx reload
+  fi
+fi
+
 echo "Deploy build OK: $REPO_ROOT/dist"
