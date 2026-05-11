@@ -24,7 +24,7 @@ NODE_ENV=production npm exec -- vite build
 export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 if command -v nginx >/dev/null 2>&1 || [ -x /usr/sbin/nginx ]; then
   SITE_CONF="/etc/nginx/sites-available/igor-broker-site"
-  install -d "$(dirname "$SITE_CONF")"
+  install -d "$(dirname "$SITE_CONF")" /etc/nginx/sites-enabled
   cat >"$SITE_CONF" <<NGINX_EOF
 server {
     listen 80 default_server;
@@ -47,8 +47,15 @@ server {
     }
 }
 NGINX_EOF
-  ln -sf "$SITE_CONF" /etc/nginx/sites-enabled/igor-broker-site
-  rm -f /etc/nginx/sites-enabled/default
+  NGINX_MAIN="/etc/nginx/nginx.conf"
+  if grep -q sites-enabled "$NGINX_MAIN" 2>/dev/null; then
+    ln -sf "$SITE_CONF" /etc/nginx/sites-enabled/igor-broker-site
+    rm -f /etc/nginx/sites-enabled/default
+  else
+    install -d /etc/nginx/conf.d
+    cp -f "$SITE_CONF" /etc/nginx/conf.d/igor-broker-site.conf
+    rm -f /etc/nginx/conf.d/default.conf 2>/dev/null || true
+  fi
   nginx -t
   if command -v systemctl >/dev/null 2>&1; then
     systemctl reload nginx
