@@ -1,0 +1,72 @@
+/* Сдержанные премиальные эффекты; анимации отключаются через .motion-reduce в AnimatedBackground */
+
+@keyframes premium-shimmer {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes premium-drift {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  33% {
+    transform: translate(3px, -2px);
+  }
+  66% {
+    transform: translate(-2px, 2px);
+  }
+}
+
+@keyframes catalog-sway {
+  0%,
+  100% {
+    transform: rotate(-2.5deg);
+  }
+  50% {
+    transform: rotate(2deg);
+  }
+}
+
+.premium-shimmer-border {
+  background: linear-gradient(
+    120deg,
+    rgba(184, 149, 92, 0.25) 0%,
+    rgba(244, 241, 234, 0.45) 35%,
+    rgba(184, 149, 92, 0.35) 50%,
+    rgba(90, 88, 84, 0.2) 65%,
+    rgba(184, 149, 92, 0.25) 100%
+  );
+  background-size: 220% 100%;
+  animation: premium-shimmer 10s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .premium-shimmer-border {
+    animation: none;
+    background-position: 50% 50%;
+  }
+
+  .premium-drift {
+    animation: none !important;
+  }
+
+  .catalog-sway {
+    animation: none !important;
+  }
+}
+
+.premium-drift {
+  animation: premium-drift 16s ease-in-out infinite;
+}
+
+.catalog-sway {
+  animation: catalog-sway 22s ease-in-out infinite;
+}
