@@ -20,7 +20,9 @@ NODE_ENV=development npm ci --no-audit --no-fund --loglevel=warn
 NODE_ENV=production npm exec -- vite build
 
 # nginx по умолчанию отдаёт Welcome — подключаем собранный dist как основной сайт на :80.
-if command -v nginx >/dev/null 2>&1; then
+# Неинтерактивный SSH часто без /usr/sbin в PATH → command -v nginx молча пропускал блок.
+export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+if command -v nginx >/dev/null 2>&1 || [ -x /usr/sbin/nginx ]; then
   SITE_CONF="/etc/nginx/sites-available/igor-broker-site"
   install -d "$(dirname "$SITE_CONF")"
   cat >"$SITE_CONF" <<NGINX_EOF
