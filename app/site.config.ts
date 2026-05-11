@@ -12,6 +12,10 @@ export const siteConfig = {
   telegramUsername: 'igorbroker',
   telegramChannelUsername: 'igorbroker_channel',
 
+  /** MAX (max.ru) — веб и номер для связи */
+  maxWebUrl: 'https://web.max.ru/',
+  maxPhoneTel: '+79939198600',
+
   /** Полный URL сайта для SEO (production). В dev можно не задавать. */
   siteUrl: import.meta.env.VITE_SITE_URL?.replace(/\/$/, '') ?? '',
 
@@ -27,6 +31,10 @@ export function telegramDmUrl(text?: string): string {
 
 export function telegramChannelUrl(): string {
   return `https://t.me/${siteConfig.telegramChannelUsername}`;
+}
+
+export function maxWebOpenUrl(): string {
+  return siteConfig.maxWebUrl;
 }
 
 export function absoluteSiteUrl(path = ''): string {

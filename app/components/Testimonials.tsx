@@ -34,7 +34,6 @@ export function Testimonials() {
           viewport={{ once: true }}
           transition={{ duration: 0.55 }}
         >
-          <p className="text-[11px] uppercase tracking-[0.25em] text-accent/85 mb-4">Репутация</p>
           <h2 className="text-[38px] sm:text-[46px] text-primary mb-4 font-semibold tracking-tight">Отзывы</h2>
           <p className="text-[17px] sm:text-[18px] text-muted-foreground max-w-2xl mx-auto font-light leading-relaxed">
             Обратная связь от клиентов, с которыми выстроена долгосрочная работа

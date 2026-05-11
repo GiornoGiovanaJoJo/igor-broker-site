@@ -67,7 +67,6 @@ export function CatalogDownload() {
               viewport={{ once: true }}
               transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
             >
-              <p className="text-[11px] uppercase tracking-[0.28em] text-accent/90 mb-4">Материалы</p>
               <h2
                 id="catalog-heading"
                 className="text-[clamp(1.75rem,4vw,2.75rem)] leading-[1.15] text-primary font-semibold tracking-[0.06em] uppercase font-display"

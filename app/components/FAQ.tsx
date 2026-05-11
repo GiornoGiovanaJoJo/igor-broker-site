@@ -42,7 +42,6 @@ export function FAQ() {
           viewport={{ once: true }}
           transition={{ duration: 0.55 }}
         >
-          <p className="text-[11px] uppercase tracking-[0.25em] text-accent/85 mb-4">FAQ</p>
           <h2 className="text-[34px] sm:text-[42px] text-primary mb-4 font-bold tracking-tight">Частые вопросы</h2>
           <p className="text-[17px] text-muted-foreground font-light leading-relaxed">
             Коротко о формате работы и ожиданиях — без обещаний «лучшей квартиры за один звонок»

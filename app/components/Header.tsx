@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Phone, Send, Menu, X } from 'lucide-react';
-import { siteConfig, telegramDmUrl } from '../site.config';
+import { siteConfig, telegramDmUrl, maxWebOpenUrl } from '../site.config';
 
 const NAV = [
   { id: 'for-whom', label: 'Для кого' },
@@ -89,15 +89,24 @@ export function Header() {
               ))}
             </nav>
 
-            <div className="flex items-center gap-2 sm:gap-3">
+            <div className="flex items-center gap-2 sm:gap-3 flex-wrap justify-end">
               <button
                 type="button"
                 onClick={() => window.open(telegramDmUrl(), '_blank')}
-                className="hidden sm:flex items-center gap-2 px-5 py-2.5 rounded-lg border border-accent/35 text-foreground/90 hover:bg-accent/10 hover:border-accent/55 transition-all duration-300"
+                className="hidden sm:flex items-center gap-2 px-4 py-2.5 rounded-lg border border-accent/35 text-foreground/90 hover:bg-accent/10 hover:border-accent/55 transition-all duration-300"
               >
                 <Send className="w-4 h-4 text-accent/90" aria-hidden />
                 <span className="text-[14px]">Telegram</span>
               </button>
+              <a
+                href={maxWebOpenUrl()}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hidden sm:inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-accent/35 text-foreground/90 hover:bg-accent/10 hover:border-accent/55 transition-all duration-300 text-[14px] font-medium"
+              >
+                <span className="text-accent/95">MAX</span>
+                <span className="text-muted-foreground text-[13px] tabular-nums">{siteConfig.maxPhoneTel}</span>
+              </a>
               <button
                 type="button"
                 onClick={() => handleNav('lead-form')}
@@ -161,11 +170,21 @@ export function Header() {
                 setMobileOpen(false);
                 window.open(telegramDmUrl(), '_blank');
               }}
-              className="mt-6 flex items-center justify-center gap-2 w-full py-4 rounded-lg border border-accent/35 text-[15px] font-medium"
+              className="mt-4 flex items-center justify-center gap-2 w-full py-4 rounded-lg border border-accent/35 text-[15px] font-medium"
             >
               <Send className="w-5 h-5 text-accent" aria-hidden />
               Telegram
             </button>
+            <a
+              href={maxWebOpenUrl()}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => setMobileOpen(false)}
+              className="mt-3 flex items-center justify-center gap-2 w-full py-4 rounded-lg border border-accent/35 text-[15px] font-medium"
+            >
+              <span className="text-accent font-semibold">MAX</span>
+              {siteConfig.maxPhoneTel}
+            </a>
           </nav>
         </div>
         </>

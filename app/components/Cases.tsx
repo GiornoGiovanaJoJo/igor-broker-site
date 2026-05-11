@@ -37,7 +37,6 @@ export function Cases() {
           viewport={{ once: true }}
           transition={{ duration: 0.55 }}
         >
-          <p className="text-[11px] uppercase tracking-[0.25em] text-accent/85 mb-4">Результаты</p>
           <h2 className="text-[38px] sm:text-[46px] text-primary mb-4 font-semibold tracking-tight">Кейсы</h2>
           <p className="text-[17px] sm:text-[18px] text-muted-foreground max-w-2xl mx-auto font-light leading-relaxed">
             Форматы реальных подборов — без публичных цен и рекламы застройщиков

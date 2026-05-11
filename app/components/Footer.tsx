@@ -2,7 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Phone, Send, Mail, MapPin } from 'lucide-react';
 import { motion } from 'motion/react';
-import { siteConfig, telegramDmUrl } from '../site.config';
+import { siteConfig, telegramDmUrl, maxWebOpenUrl } from '../site.config';
 
 export function Footer() {
   const telHref = `tel:${siteConfig.phoneTel}`;
@@ -63,6 +63,17 @@ export function Footer() {
                   <Send className="w-4 h-4 text-accent/85" aria-hidden />
                 </div>
                 <span>@{siteConfig.telegramUsername}</span>
+              </a>
+              <a
+                href={maxWebOpenUrl()}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 text-[14px] text-muted-foreground hover:text-accent transition-colors duration-300 group"
+              >
+                <div className="w-9 h-9 rounded-lg bg-card border border-border group-hover:border-accent/35 flex items-center justify-center transition-colors text-[11px] font-bold text-accent">
+                  MAX
+                </div>
+                <span>{siteConfig.maxPhoneTel}</span>
               </a>
               <a
                 href={`mailto:${siteConfig.email}`}
