@@ -14,8 +14,9 @@ git fetch origin "$BRANCH"
 git checkout "$BRANCH"
 git reset --hard "origin/$BRANCH"
 
-# Не ставить NODE_ENV=production до npm ci — иначе не ставятся devDependencies (vite, typescript).
-npm ci --no-audit --no-fund --loglevel=warn
-NODE_ENV=production npm run build
+# Старый production-only node_modules + NODE_ENV в окружении root дают «vite: not found».
+rm -rf node_modules
+NODE_ENV=development npm ci --no-audit --no-fund --loglevel=warn
+NODE_ENV=production npm exec -- vite build
 
 echo "Deploy build OK: $REPO_ROOT/dist"
