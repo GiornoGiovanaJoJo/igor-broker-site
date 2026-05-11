@@ -8,6 +8,9 @@
 #   SSH_PRIVATE_KEY   — приватный ключ OpenSSH; предпочтительно (часто пароль для root по SSH запрещён)
 #   SSH_PASSWORD      — запасной вариант (если на сервере включены password/kbd-interactive)
 #
+# Если у приватного ключа есть passphrase:
+#   SSH_KEY_PASSPHRASE — та же фраза (секрет); на раннере ключ временно загружается в ssh-agent через SSH_ASKPASS.
+#
 # Опционально:
 #   SSH_PORT          — порт SSH из панели хостинга (если не задан — 22)
 #
@@ -57,6 +60,7 @@ jobs:
           SSH_USER: ${{ secrets.SSH_USER }}
           SSH_PORT: ${{ secrets.SSH_PORT }}
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_KEY_PASSPHRASE: ${{ secrets.SSH_KEY_PASSPHRASE }}
           SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
           DEPLOY_TARGET_PATH: ${{ env.DEPLOY_TARGET_PATH }}
         run: |
@@ -84,17 +88,41 @@ jobs:
               exit 1
             fi
 
-            if ! ssh-keygen -y -f "$KEY_FILE" >/dev/null 2>&1; then
-              echo "::error::Приватный ключ не подходит: passphrase, обрезанный текст или не OpenSSH. Сгенерируйте ключ без passphrase и вставьте секрет целиком."
-              exit 1
+            if [ -z "${SSH_KEY_PASSPHRASE:-}" ]; then
+              if ! ssh-keygen -y -f "$KEY_FILE" >/dev/null 2>&1; then
+                echo "::error::Ключ не читается без passphrase (ключ зашифрован?). Добавьте секрет SSH_KEY_PASSPHRASE или снимите passphrase с ключа."
+                exit 1
+              fi
+              ssh "${COMMON_OPTS[@]}" \
+                -i "$KEY_FILE" \
+                -o BatchMode=yes \
+                -o IdentitiesOnly=yes \
+                "$TARGET" \
+                "$REMOTE_CMD"
+            else
+              eval "$(ssh-agent -s)"
+              trap 'ssh-agent -k >/dev/null 2>&1 || true' EXIT
+              export SSH_ASKPASS_REQUIRE=force
+              export DISPLAY=:0
+              cat > /tmp/git-ci-askpass.sh << 'ASKPASS_EOF'
+#!/bin/sh
+printf '%s\n' "$SSH_KEY_PASSPHRASE"
+ASKPASS_EOF
+              chmod 700 /tmp/git-ci-askpass.sh
+              export SSH_ASKPASS=/tmp/git-ci-askpass.sh
+              ssh-add "$KEY_FILE" </dev/null || {
+                echo "::error::ssh-add не удался: проверьте SSH_KEY_PASSPHRASE и целостность SSH_PRIVATE_KEY."
+                exit 1
+              }
+              rm -f /tmp/git-ci-askpass.sh
+              # -i нужен вместе с IdentitiesOnly=yes; расшифровка возьмётся из ssh-agent.
+              ssh "${COMMON_OPTS[@]}" \
+                -i "$KEY_FILE" \
+                -o BatchMode=yes \
+                -o IdentitiesOnly=yes \
+                "$TARGET" \
+                "$REMOTE_CMD"
             fi
-
-            ssh "${COMMON_OPTS[@]}" \
-              -i "$KEY_FILE" \
-              -o BatchMode=yes \
-              -o IdentitiesOnly=yes \
-              "$TARGET" \
-              "$REMOTE_CMD"
           elif [ -n "${SSH_PASSWORD:-}" ]; then
             sudo apt-get update -qq
             sudo apt-get install -y -qq sshpass
