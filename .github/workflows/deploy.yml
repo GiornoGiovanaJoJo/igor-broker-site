@@ -1,13 +1,13 @@
-# Деплой по SSH с паролем (без ключей).
+# Деплой по SSH с паролем: sshpass → на сервере git pull + npm ci + build.
 #
-# Secrets → Actions → Repository secrets (попадают в env ниже):
-#   SSH_HOST     — хост VPS
-#   SSH_USER     — пользователь (например root)
-#   SSH_PASSWORD — пароль SSH
-#   SSH_PORT     — опционально; если нет — 22
+# Секреты (Settings → Secrets and variables → Actions):
+#   SSH_HOST      — хост VPS
+#   SSH_USER      — пользователь (например root)
+#   SSH_PASSWORD  — пароль для SSH
+#   SSH_PORT      — опционально; если нет — порт 22
 #
-# На сервере должен быть включён вход по паролю (PasswordAuthentication).
-# Путь к клону репозитория — env DEPLOY_TARGET_PATH в этом файле.
+# Путь к клону репозитория — env DEPLOY_TARGET_PATH ниже.
+# На сервере должен быть включён вход по паролю (или keyboard-interactive), иначе SSH откажет.
 
 name: Deploy
 
@@ -26,39 +26,41 @@ jobs:
     timeout-minutes: 30
     env:
       DEPLOY_TARGET_PATH: /var/www/igor-broker-site
-      SSH_HOST: ${{ secrets.SSH_HOST }}
-      SSH_USER: ${{ secrets.SSH_USER }}
-      SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
-      SSH_PORT: ${{ secrets.SSH_PORT }}
 
     steps:
-      - name: SSH deploy (sshpass + password)
+      - name: Known hosts + sshpass + deploy
         shell: bash
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+          SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
+          DEPLOY_TARGET_PATH: ${{ env.DEPLOY_TARGET_PATH }}
         run: |
           set -euo pipefail
-          test -n "${SSH_HOST:-}" || { echo "::error::Задайте секрет SSH_HOST"; exit 1; }
-          test -n "${SSH_USER:-}" || { echo "::error::Задайте секрет SSH_USER"; exit 1; }
-          test -n "${SSH_PASSWORD:-}" || { echo "::error::Задайте секрет SSH_PASSWORD"; exit 1; }
-
+          : "${SSH_HOST:?SSH_HOST}"
+          : "${SSH_USER:?SSH_USER}"
+          : "${SSH_PASSWORD:?SSH_PASSWORD}"
           PORT="${SSH_PORT:-22}"
           TARGET="${SSH_USER}@${SSH_HOST}"
-          REMOTE_CMD="set -euo pipefail; cd $(printf '%q' "${DEPLOY_TARGET_PATH}") && bash scripts/server-deploy.sh"
+          REMOTE_CMD="set -euo pipefail; cd $(printf '%q' "$DEPLOY_TARGET_PATH") && bash scripts/server-deploy.sh"
 
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
           ssh-keyscan -p "$PORT" -H "$SSH_HOST" >> ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
 
           sudo apt-get update -qq
           sudo apt-get install -y -qq sshpass
-
           export SSHPASS="$SSH_PASSWORD"
+
           sshpass -e ssh \
             -p "$PORT" \
             -o StrictHostKeyChecking=yes \
-            -o PubkeyAuthentication=no \
-            -o PreferredAuthentications=password,keyboard-interactive \
             -o ConnectTimeout=60 \
             -o ServerAliveInterval=30 \
+            -o PreferredAuthentications=password,keyboard-interactive \
+            -o PubkeyAuthentication=no \
             -tt \
             "$TARGET" \
             "$REMOTE_CMD"
