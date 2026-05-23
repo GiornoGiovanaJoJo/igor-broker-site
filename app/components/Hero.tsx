@@ -1,5 +1,5 @@
 import React from 'react';
-import { Send, ArrowRight, Sparkles } from 'lucide-react';
+import { Send, ArrowRight } from 'lucide-react';
 import { motion } from 'motion/react';
 import { telegramDmUrl, maxWebOpenUrl, siteConfig } from '../site.config';
 
@@ -38,13 +38,6 @@ export function Hero() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
           >
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-accent/10 border border-accent/20">
-              <Sparkles className="w-4 h-4 text-accent/90" />
-              <span className="text-[12px] font-medium text-muted-foreground tracking-wide uppercase">
-                Банковская сфера с 2005 · Недвижимость с 2019
-              </span>
-            </div>
-
             <div className="space-y-6">
               <h1 className="text-[42px] sm:text-[54px] lg:text-[64px] leading-[1.08] tracking-tight text-primary font-semibold">
                 Новостройка{' '}
@@ -65,13 +58,21 @@ export function Hero() {
                 ))}
               </div>
 
-              <p className="text-[18px] sm:text-[19px] text-muted-foreground leading-relaxed font-light max-w-xl">
-                Конфиденциальный подбор и сценарии платежа без лишних визитов в офисы застройщика. Москва и область:{' '}
-                <span className="text-foreground/85">семейная ипотека</span>,{' '}
-                <span className="text-foreground/85">рассрочка</span>,{' '}
-                <span className="text-foreground/85">100% оплата</span>
-                {' — '}сопровождение сделки на уровне private banking.
-              </p>
+              <div className="space-y-4 max-w-xl text-[18px] sm:text-[19px] text-muted-foreground leading-relaxed font-light">
+                <p>
+                  Конфиденциальный подбор и консультация по стратегии выбора. Без лишних визитов в офисы продаж.
+                </p>
+                <p>
+                  Как использовать{' '}
+                  <span className="text-foreground/85">ипотеку</span>,{' '}
+                  <span className="text-foreground/85">рассрочку</span> и{' '}
+                  <span className="text-foreground/85">100% оплату</span>?
+                </p>
+                <p>
+                  Регион работы и анализа: <span className="text-foreground/85">г. Москва</span>.
+                </p>
+                <p className="text-foreground/80">Сопровождение сделки на уровне private banking.</p>
+              </div>
             </div>
 
             <div className="flex flex-col sm:flex-row flex-wrap gap-3">
