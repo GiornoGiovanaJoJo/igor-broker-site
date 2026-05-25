@@ -38,18 +38,18 @@ export function ForWhom() {
           transition={{ duration: 0.55 }}
         >
           <h2 className="text-[38px] sm:text-[46px] text-primary mb-4 font-semibold tracking-tight">Для кого</h2>
-          <p className="text-[17px] sm:text-[18px] text-muted-foreground max-w-2xl mx-auto font-light leading-relaxed">
+          <p className="section-lead">
             Работаю с семьями и частными инвесторами, которым важны цифры, время и приватность — без давления и «горящих акций»
           </p>
         </motion.div>
 
-        <div className="grid md:grid-cols-3 gap-6">
+        <div className="cards-grid md:grid-cols-3">
           {segments.map((segment, index) => {
             const Icon = segment.icon;
             return (
-              <motion.div
-                key={index}
-                className="group relative p-8 rounded-3xl bg-card/80 border border-border hover:border-accent/25 transition-all duration-500 hover:shadow-[0_20px_60px_rgba(0,0,0,0.35)] overflow-hidden backdrop-blur-sm"
+              <motion.article
+                key={segment.title}
+                className="card-shell group relative overflow-hidden rounded-3xl border border-border bg-card/80 p-8 backdrop-blur-sm transition-all duration-500 hover:border-accent/25 hover:shadow-[0_20px_60px_rgba(0,0,0,0.35)]"
                 initial={{ opacity: 0, y: 26 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
@@ -58,20 +58,20 @@ export function ForWhom() {
               >
                 <div className="absolute inset-0 bg-gradient-to-br from-accent/[0.03] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
-                <div className="relative z-10">
+                <div className="relative z-10 flex h-full flex-col">
                   <motion.div
-                    className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${segment.iconBg} flex items-center justify-center mb-6 border border-accent/15`}
+                    className={`mb-6 flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-accent/15 bg-gradient-to-br ${segment.iconBg}`}
                     whileHover={{ scale: 1.03 }}
                     transition={{ type: 'spring', stiffness: 400, damping: 22 }}
                   >
-                    <Icon className="w-7 h-7 text-accent/95" />
+                    <Icon className="h-7 w-7 text-accent/95" aria-hidden />
                   </motion.div>
-                  <h3 className="text-[22px] sm:text-[24px] text-primary mb-3 font-semibold">{segment.title}</h3>
-                  <p className="text-[15px] text-muted-foreground leading-relaxed">{segment.description}</p>
+                  <h3 className="card-title mb-3 text-[22px] sm:text-[24px]">{segment.title}</h3>
+                  <p className="card-text-grow">{segment.description}</p>
                 </div>
 
-                <div className="absolute top-0 right-0 w-16 h-16 bg-accent/[0.04] rounded-bl-[36px] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-              </motion.div>
+                <div className="pointer-events-none absolute right-0 top-0 h-16 w-16 rounded-bl-[36px] bg-accent/[0.04] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+              </motion.article>
             );
           })}
         </div>

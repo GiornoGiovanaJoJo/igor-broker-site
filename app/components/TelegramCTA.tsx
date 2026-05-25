@@ -82,23 +82,24 @@ export function TelegramCTA() {
           viewport={{ once: true }}
           transition={{ duration: 0.55, delay: 0.18 }}
         >
-          <div className="grid sm:grid-cols-3 gap-10">
+          <div className="cards-grid sm:grid-cols-3">
             {[
               { value: '2000+', label: 'подписчиков' },
               { value: '50+', label: 'обзоров ЖК' },
               { value: '3–5', label: 'материалов в неделю' },
             ].map((stat, i) => (
               <motion.div
-                key={i}
+                key={stat.label}
+                className="flex flex-col items-center justify-center text-center"
                 initial={{ opacity: 0, y: 14 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.5, delay: 0.22 + i * 0.08 }}
               >
-                <div className="text-[36px] sm:text-[40px] font-semibold text-accent mb-2 font-display">
+                <div className="mb-2 font-display text-[36px] font-semibold text-accent sm:text-[40px]">
                   {stat.value}
                 </div>
-                <div className="text-[14px] text-muted-foreground tracking-wide">{stat.label}</div>
+                <div className="min-h-[2.5rem] text-[14px] tracking-wide text-muted-foreground">{stat.label}</div>
               </motion.div>
             ))}
           </div>

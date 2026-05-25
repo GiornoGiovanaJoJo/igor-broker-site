@@ -41,29 +41,29 @@ export function HowItWorks() {
           transition={{ duration: 0.55 }}
         >
           <h2 className="text-[38px] sm:text-[46px] text-primary mb-4 font-semibold tracking-tight">Как проходит работа</h2>
-          <p className="text-[17px] sm:text-[18px] text-muted-foreground max-w-2xl mx-auto font-light leading-relaxed">
+          <p className="section-lead">
             Прозрачные этапы без навязанных показов — фокус на вашей задаче и цифрах
           </p>
         </motion.div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div className="cards-grid md:grid-cols-2 lg:grid-cols-4">
           {steps.map((step, index) => {
             const Icon = step.icon;
             return (
               <motion.div
-                key={index}
-                className="relative"
+                key={step.number}
+                className="relative h-full"
                 initial={{ opacity: 0, y: 26 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.55, delay: index * 0.07 }}
               >
                 <motion.div
-                  className="flex flex-col items-center text-center"
+                  className="flex h-full flex-col items-center text-center"
                   whileHover={{ y: -5 }}
                   transition={{ type: 'spring', stiffness: 320, damping: 24 }}
                 >
-                  <div className="relative mb-6">
+                  <div className="relative mb-6 shrink-0">
                     <motion.div
                       className="w-24 h-24 rounded-3xl bg-card/90 border border-accent/18 flex items-center justify-center shadow-[0_12px_40px_rgba(0,0,0,0.35)] transition-colors hover:border-accent/35"
                       whileHover={{ scale: 1.02 }}
@@ -80,8 +80,10 @@ export function HowItWorks() {
                       {step.number}
                     </motion.div>
                   </div>
-                  <h3 className="text-[20px] sm:text-[22px] text-primary mb-3 font-semibold">{step.title}</h3>
-                  <p className="text-[14px] text-muted-foreground leading-relaxed max-w-[260px]">{step.description}</p>
+                  <h3 className="mb-3 flex min-h-[3.5rem] items-center justify-center text-balance text-[20px] font-semibold leading-snug text-primary line-clamp-2 sm:text-[22px]">
+                    {step.title}
+                  </h3>
+                  <p className="card-text-grow max-w-[260px] text-[14px]">{step.description}</p>
                 </motion.div>
 
                 {index < steps.length - 1 && (

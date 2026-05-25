@@ -82,7 +82,7 @@ function ReasonCard({
         isFeatured
           ? 'border-accent/30 bg-gradient-to-br from-card/90 via-card/75 to-[#141210]/90 shadow-[0_24px_80px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(184,149,92,0.12)]'
           : 'border-border/80 bg-card/55 hover:border-accent/25 hover:shadow-[0_20px_60px_rgba(0,0,0,0.35)]'
-      } ${isWide ? 'p-8 sm:p-10' : 'p-7 sm:p-8'} ${isFeatured ? 'min-h-[320px] lg:min-h-full flex flex-col' : ''}`}
+      } ${isWide ? 'p-8 sm:p-10' : 'p-7 sm:p-8'} ${isFeatured ? 'min-h-[320px] lg:min-h-full' : ''} flex h-full flex-col`}
       whileHover={reduceMotion ? undefined : { y: -4 }}
       transition={{ type: 'spring', stiffness: 380, damping: 28 }}
     >
@@ -219,7 +219,7 @@ export function WhyMe() {
           >
             Почему я
           </h2>
-          <p className="mx-auto max-w-2xl text-[17px] font-light leading-relaxed text-muted-foreground sm:text-[18px]">
+          <p className="mx-auto max-w-2xl section-lead">
             Не каталог и не отдел продаж застройщика — финансовое сопровождение сделки с вашей стороны стола
           </p>
 
@@ -236,7 +236,7 @@ export function WhyMe() {
         </motion.div>
 
         <motion.div
-          className="grid grid-cols-1 gap-5 lg:grid-cols-12 lg:grid-rows-[auto_auto_auto] lg:gap-6"
+          className="grid grid-cols-1 gap-5 lg:grid-cols-12 lg:grid-rows-[auto_auto_auto] lg:gap-6 lg:items-stretch"
           variants={containerVariants}
           initial="hidden"
           whileInView="visible"
@@ -248,7 +248,7 @@ export function WhyMe() {
         </motion.div>
 
         <motion.div
-          className="mt-12 grid grid-cols-1 gap-6 border-t border-border/70 pt-10 sm:grid-cols-3 sm:gap-8"
+          className="cards-grid mt-12 border-t border-border/70 pt-10 sm:grid-cols-3"
           initial={reduceMotion ? false : { opacity: 0, y: 16 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}

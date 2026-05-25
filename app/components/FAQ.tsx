@@ -68,7 +68,7 @@ export function FAQ() {
                   onClick={() => setOpen(isOpen ? null : index)}
                   className="w-full flex items-start justify-between gap-4 px-5 py-4 text-left hover:bg-card/60 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
                 >
-                  <span className="text-[15px] font-semibold text-primary pr-2">{item.q}</span>
+                  <span className="text-[15px] font-semibold text-primary pr-2 text-pretty">{item.q}</span>
                   <ChevronDown
                     className={`w-5 h-5 shrink-0 text-accent transition-transform mt-0.5 ${isOpen ? 'rotate-180' : ''}`}
                     aria-hidden
@@ -81,7 +81,7 @@ export function FAQ() {
                   hidden={!isOpen}
                   className={`${isOpen ? 'block' : 'hidden'} px-5 pb-5 pt-0 border-t border-border/60`}
                 >
-                  <p className="text-[14px] text-muted-foreground leading-relaxed pt-4">{item.a}</p>
+                  <p className="pt-4 text-[14px] leading-relaxed text-muted-foreground text-pretty">{item.a}</p>
                 </div>
               </motion.div>
             );

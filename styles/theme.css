@@ -184,3 +184,33 @@
     color: var(--foreground);
   }
 }
+
+@layer components {
+  .cards-grid {
+    @apply grid items-stretch gap-6 md:gap-8;
+  }
+
+  .card-shell {
+    @apply flex h-full flex-col overflow-hidden;
+  }
+
+  .card-content {
+    @apply flex flex-1 flex-col gap-4 p-6 sm:p-7;
+  }
+
+  .card-title {
+    @apply min-h-[3.5rem] text-balance line-clamp-2 text-[22px] font-semibold leading-snug text-primary sm:text-[24px];
+  }
+
+  .card-text-grow {
+    @apply flex-1 text-pretty text-[15px] leading-relaxed text-muted-foreground;
+  }
+
+  .card-footer {
+    @apply mt-auto shrink-0 border-t border-border pt-4;
+  }
+
+  .section-lead {
+    @apply mx-auto max-w-2xl text-pretty text-[17px] font-light leading-relaxed text-muted-foreground sm:text-[18px];
+  }
+}
