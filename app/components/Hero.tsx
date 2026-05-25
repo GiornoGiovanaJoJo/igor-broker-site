@@ -4,6 +4,7 @@ import { motion } from 'motion/react';
 import { telegramDmUrl, maxWebOpenUrl, siteConfig } from '../site.config';
 
 const HERO_PORTRAIT = '/images/hero-portrait.png';
+const HERO_PORTRAIT_WEBP = '/images/hero-portrait.webp';
 
 const TASK_CHIPS = ['Личное проживание', 'Инвест', 'Улучшение актива', 'Пассивный поток'] as const;
 
@@ -143,13 +144,19 @@ export function Hero() {
             transition={{ duration: 0.85, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
           >
             <div className="relative aspect-[4/5] rounded-[28px] overflow-hidden border border-accent/15 bg-card/50 shadow-[0_24px_80px_rgba(0,0,0,0.5)]">
-              <img
-                src={HERO_PORTRAIT}
-                alt="Игорь — брокер по новостройкам"
-                className="absolute inset-0 w-full h-full object-cover scale-[1.02]"
-                loading="eager"
-                decoding="async"
-              />
+              <picture>
+                <source srcSet={HERO_PORTRAIT_WEBP} type="image/webp" />
+                <img
+                  src={HERO_PORTRAIT}
+                  alt="Игорь — брокер по новостройкам"
+                  width={1456}
+                  height={2048}
+                  className="absolute inset-0 w-full h-full object-cover object-[center_12%]"
+                  loading="eager"
+                  decoding="async"
+                  fetchPriority="high"
+                />
+              </picture>
               <div className="absolute inset-0 bg-gradient-to-t from-background via-background/35 to-transparent pointer-events-none" />
               <motion.div
                 className="absolute inset-0 pointer-events-none mix-blend-soft-light opacity-40"

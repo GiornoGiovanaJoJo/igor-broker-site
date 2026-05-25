@@ -10,3 +10,4 @@ Thumbs.db
 *.log
 coverage
 .idea
+scripts/upscale_weights/
