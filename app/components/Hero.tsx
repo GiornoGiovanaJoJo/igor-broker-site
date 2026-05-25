@@ -3,8 +3,7 @@ import { Send, ArrowRight } from 'lucide-react';
 import { motion } from 'motion/react';
 import { telegramDmUrl, maxWebOpenUrl, siteConfig } from '../site.config';
 
-const HERO_PORTRAIT =
-  'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=960&q=85&auto=format&fit=crop';
+const HERO_PORTRAIT = '/images/hero-portrait.png';
 
 const TASK_CHIPS = ['Личное проживание', 'Инвест', 'Улучшение актива', 'Пассивный поток'] as const;
 
@@ -60,7 +59,9 @@ export function Hero() {
 
               <div className="space-y-4 max-w-xl text-[18px] sm:text-[19px] text-muted-foreground leading-relaxed font-light">
                 <p>
-                  Конфиденциальный подбор и консультация по стратегии выбора. Без лишних визитов в офисы продаж.
+                  Конфиденциальный подбор и консультация по стратегии выбора.
+                  <br />
+                  Без лишних визитов в офисы продаж.
                 </p>
                 <p>
                   Как использовать{' '}
@@ -68,10 +69,10 @@ export function Hero() {
                   <span className="text-foreground/85">рассрочку</span> и{' '}
                   <span className="text-foreground/85">100% оплату</span>?
                 </p>
+                <p className="text-foreground/80">Сопровождение сделки на уровне private banking.</p>
                 <p>
                   Регион работы и анализа: <span className="text-foreground/85">г. Москва</span>.
                 </p>
-                <p className="text-foreground/80">Сопровождение сделки на уровне private banking.</p>
               </div>
             </div>
 
@@ -144,7 +145,7 @@ export function Hero() {
             <div className="relative aspect-[4/5] rounded-[28px] overflow-hidden border border-accent/15 bg-card/50 shadow-[0_24px_80px_rgba(0,0,0,0.5)]">
               <img
                 src={HERO_PORTRAIT}
-                alt=""
+                alt="Игорь — брокер по новостройкам"
                 className="absolute inset-0 w-full h-full object-cover scale-[1.02]"
                 loading="eager"
                 decoding="async"
@@ -161,9 +162,6 @@ export function Hero() {
                 }}
                 transition={{ duration: 14, repeat: Infinity, ease: 'easeInOut' }}
               />
-              <p className="absolute bottom-5 left-5 right-5 text-[12px] text-muted-foreground tracking-wide">
-                Иллюстрация: замените на ваше фото в коде компонента Hero
-              </p>
             </div>
 
             <div className="absolute -top-4 -right-4 w-28 h-28 bg-accent/6 rounded-full blur-3xl -z-10" />

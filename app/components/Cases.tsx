@@ -5,10 +5,11 @@ import { motion } from 'motion/react';
 export function Cases() {
   const cases = [
     {
-      name: 'Серебряный Бор',
+      name: 'Квартал Серебряный бор',
       location: 'Хорошёво-Мнёвники',
       date: 'Сдача Q4 2026',
       description: 'Семейная ипотека, трёхкомнатная квартира. Оптимизация переплаты и прозрачная модель платежей под семейный бюджет.',
+      image: '/images/case-serebryany-bor.png',
       gradient: 'from-[#1a1815] via-[#121110] to-[#0e0d0c]',
     },
     {
@@ -16,13 +17,15 @@ export function Cases() {
       location: 'Нагатинская набережная',
       date: 'Сдача Q2 2025',
       description: 'Первая резиденция: студия с акцентом на первый взнос и аккуратный выход из текущего актива.',
+      image: '/images/case-life-varshavskaya.png',
       gradient: 'from-[#181716] via-[#11100f] to-[#0c0b0a]',
     },
     {
-      name: 'Headliner',
-      location: 'Кутузовский проспект',
+      name: 'ЖК ПРИМАВЕРА',
+      location: 'Москва',
       date: 'Сдача Q1 2027',
       description: 'Инвестиционный запрос: подбор застройщика и локации с фокусом на ликвидность и сценарий удержания.',
+      image: '/images/case-primavera.png',
       gradient: 'from-[#1c1a17] via-[#131210] to-[#0f0e0d]',
     },
   ];
@@ -55,6 +58,13 @@ export function Cases() {
               whileHover={{ y: -8 }}
             >
               <div className={`relative h-52 bg-gradient-to-br ${caseItem.gradient} overflow-hidden`}>
+                <img
+                  src={caseItem.image}
+                  alt={caseItem.name}
+                  className="absolute inset-0 w-full h-full object-cover"
+                  loading="lazy"
+                  decoding="async"
+                />
                 {[...Array(3)].map((_, i) => (
                   <motion.div
                     key={i}
