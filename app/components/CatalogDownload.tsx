@@ -9,13 +9,13 @@ import { telegramDmUrl } from '../site.config';
  */
 export const CATALOG_PDF_AVAILABLE = false;
 
-const PREVIEW_IMAGES = [
-  'https://images.unsplash.com/photo-1486406146926-c627a92ad4ab?w=640&q=82&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=640&q=82&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=640&q=82&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=640&q=82&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=640&q=82&auto=format&fit=crop',
-];
+const CATALOG_COVER = '/images/catalog/catalog-cover.png';
+
+const CATALOG_SCROLL_IMAGES = [
+  { src: '/images/catalog/catalog-scroll-1.png', alt: 'Новостройки Москвы — современный жилой комплекс' },
+  { src: '/images/catalog/catalog-scroll-2.png', alt: 'Москва-Сити — деловой центр' },
+  { src: '/images/catalog/catalog-scroll-3.png', alt: 'Жилой квартал с благоустроенной территорией' },
+] as const;
 
 function catalogPdfUrl(): string {
   const base = import.meta.env.BASE_URL || '/';
@@ -105,52 +105,49 @@ export function CatalogDownload() {
             </motion.div>
           </div>
 
-          <div className="lg:col-span-7 relative min-h-[320px] lg:min-h-[420px]">
+          <div className="lg:col-span-7 relative min-h-[300px] sm:min-h-[360px] lg:min-h-[440px]">
             <motion.div
-              className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-thin [scrollbar-color:rgba(184,149,92,0.35)_transparent]"
+              className="flex gap-4 overflow-x-auto pb-6 pt-2 pr-[min(48vw,240px)] sm:pr-[300px] snap-x snap-mandatory scrollbar-thin [scrollbar-color:rgba(184,149,92,0.35)_transparent]"
               initial={reduceMotion ? false : { opacity: 0 }}
               whileInView={{ opacity: 1 }}
               viewport={{ once: true }}
               transition={{ duration: 0.7 }}
             >
-              {PREVIEW_IMAGES.map((src, i) => (
+              {CATALOG_SCROLL_IMAGES.map((item) => (
                 <div
-                  key={i}
-                  className="relative shrink-0 w-[200px] sm:w-[240px] aspect-[3/4] rounded-sm overflow-hidden snap-start border border-white/[0.08] shadow-[0_0_0_1px_rgba(184,149,92,0.12),0_20px_50px_rgba(0,0,0,0.45)]"
+                  key={item.src}
+                  className="relative shrink-0 w-[min(78vw,300px)] sm:w-[320px] aspect-[16/10] snap-start overflow-hidden rounded-sm border border-white/[0.08] shadow-[0_0_0_1px_rgba(184,149,92,0.12),0_20px_50px_rgba(0,0,0,0.45)]"
                 >
-                  <img src={src} alt="" className="w-full h-full object-cover" loading="lazy" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-transparent to-transparent pointer-events-none" />
+                  <img
+                    src={item.src}
+                    alt={item.alt}
+                    className="h-full w-full object-cover object-center"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                  <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-background/50 via-transparent to-transparent" aria-hidden />
                 </div>
               ))}
             </motion.div>
 
-            {/* Обложка каталога — «статичная анимация» */}
+            {/* Обложка каталога */}
             <motion.div
-              className={`absolute -bottom-4 right-0 sm:right-4 lg:right-0 w-[min(52vw,260px)] sm:w-[280px] z-20 ${reduceMotion ? '' : 'catalog-sway'}`}
+              className={`absolute bottom-0 right-0 z-20 w-[min(52vw,240px)] sm:w-[260px] lg:w-[280px] ${reduceMotion ? '' : 'catalog-sway'}`}
               initial={reduceMotion ? false : { opacity: 0, rotate: -6, y: 20 }}
               whileInView={{ opacity: 1, rotate: -5, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.75, ease: [0.22, 1, 0.36, 1] }}
             >
-              <div className="relative p-[2px] rounded-sm premium-shimmer-border">
-                <div className="rounded-sm bg-card overflow-hidden border border-white/[0.06] shadow-[0_28px_80px_rgba(0,0,0,0.55)]">
-                  <div className="relative aspect-[3/4]">
-                    <img
-                      src="https://images.unsplash.com/photo-1511818966902-b537aba835db?w=560&q=82&auto=format&fit=crop"
-                      alt=""
-                      className="w-full h-full object-cover"
-                      loading="lazy"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-transparent" />
-                    <div className="absolute bottom-0 left-0 right-0 p-5 space-y-2">
-                      <p className="text-[10px] uppercase tracking-[0.35em] text-accent/95">PDF</p>
-                      <p className="text-[17px] sm:text-[19px] text-primary font-display font-semibold leading-snug tracking-wide uppercase">
-                        Каталог
-                        <br />
-                        новостройки · Москва
-                      </p>
-                    </div>
-                  </div>
+              <div className="relative rounded-sm p-[2px] premium-shimmer-border shadow-[0_28px_80px_rgba(0,0,0,0.55)]">
+                <div className="aspect-square overflow-hidden rounded-sm bg-card">
+                  <img
+                    src={CATALOG_COVER}
+                    alt="Каталог недвижимости Москвы"
+                    className="h-full w-full object-cover"
+                    loading="eager"
+                    decoding="async"
+                    fetchPriority="high"
+                  />
                 </div>
               </div>
             </motion.div>
