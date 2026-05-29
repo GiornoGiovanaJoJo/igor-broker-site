@@ -1,10 +1,59 @@
 import express from 'express';
+import type { Telegraf } from 'telegraf';
 import { botConfigured, env } from './env.js';
 import { createBot } from './bot.js';
 import { collectDiagnostics, getBotUsername, getLaunchState, setBotUsername, setLaunchState } from './diagnostics.js';
 
 const app = express();
 const usePolling = env.usePolling || !env.publicUrl;
+
+async function withRetry<T>(label: string, fn: () => Promise<T>, attempts = 5): Promise<T> {
+  let last: unknown;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      return await fn();
+    } catch (err) {
+      last = err;
+      const msg = err instanceof Error ? err.message : String(err);
+      console.warn(`${label} attempt ${i + 1}/${attempts} failed:`, msg);
+      if (i < attempts - 1) {
+        await new Promise((resolve) => setTimeout(resolve, 3000 * (i + 1)));
+      }
+    }
+  }
+  throw last;
+}
+
+async function startPollingBot(bot: Telegraf) {
+  setLaunchState('launching');
+  try {
+    const me = await withRetry('getMe', () => bot.telegram.getMe());
+    setBotUsername(me.username);
+    console.log('Telegram getMe OK:', me.username, me.id);
+
+    try {
+      await withRetry('deleteWebhook', () =>
+        bot.telegram.deleteWebhook({ drop_pending_updates: false }),
+      );
+    } catch (err) {
+      console.warn(
+        'deleteWebhook failed, starting polling anyway:',
+        err instanceof Error ? err.message : err,
+      );
+    }
+
+    setLaunchState('ok');
+    console.log('Bot polling starting @', me.username, '(proxy:', Boolean(env.proxyUrl), ')');
+
+    void bot.startPolling().catch((err) => {
+      console.error('Polling stopped:', err);
+      setLaunchState('error', err instanceof Error ? err.message : String(err));
+    });
+  } catch (err) {
+    console.error('Bot start failed:', err);
+    setLaunchState('error', err instanceof Error ? err.message : String(err));
+  }
+}
 
 app.get('/health', (_req, res) => {
   const { launchState, launchError } = getLaunchState();
@@ -64,23 +113,7 @@ if (botConfigured()) {
         setLaunchState('error', err instanceof Error ? err.message : String(err));
       });
   } else {
-    setLaunchState('launching');
-
-    bot.telegram
-      .deleteWebhook({ drop_pending_updates: false })
-      .catch((err) => console.warn('deleteWebhook:', err instanceof Error ? err.message : err));
-
-    bot
-      .launch({ dropPendingUpdates: false }, () => {
-        const me = bot.botInfo;
-        if (me?.username) setBotUsername(me.username);
-        console.log('Bot polling started @', me?.username, '(proxy:', Boolean(env.proxyUrl), ')');
-        setLaunchState('ok');
-      })
-      .catch((err) => {
-        console.error('Bot launch failed:', err);
-        setLaunchState('error', err instanceof Error ? err.message : String(err));
-      });
+    void startPollingBot(bot);
 
     process.once('SIGINT', () => bot.stop('SIGINT'));
     process.once('SIGTERM', () => bot.stop('SIGTERM'));
