@@ -48,7 +48,7 @@ export function InsightsPageHeader({
       <h1 className="insights-display text-[38px] sm:text-[48px] font-semibold tracking-tight text-primary text-balance mb-5">
         {title}
       </h1>
-      <p className="section-lead">{description}</p>
+      <p className="section-lead text-insights-prose-muted">{description}</p>
     </header>
   );
 }

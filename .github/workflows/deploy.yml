@@ -44,8 +44,9 @@ jobs:
           SANITY_WRITE_TOKEN: ${{ secrets.SANITY_WRITE_TOKEN }}
           TELEGRAM_PROXY_URL: ${{ secrets.TELEGRAM_PROXY_URL }}
           CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
-          BOT_PUBLIC_URL: https://6e48a4f79211.vps.myjino.ru/api/bot
-          VITE_SITE_URL: https://6e48a4f79211.vps.myjino.ru
+          BOT_PUBLIC_URL: https://igor-broker.site/api/bot
+          VITE_SITE_URL: https://igor-broker.site
+          SITE_DOMAIN: igor-broker.site
         run: |
           set -euo pipefail
           : "${SSH_HOST:?SSH_HOST}"
@@ -92,7 +93,7 @@ jobs:
             "mkdir -p $(printf '%q' "$PARENT")" \
             "if [ ! -d $(printf '%q' "$DEPLOY_PATH")/.git ]; then git clone $(printf '%q' "$REPO_URL") $(printf '%q' "$DEPLOY_PATH"); fi" \
             "cd $(printf '%q' "$DEPLOY_PATH")" \
-            "TELEGRAM_BOT_TOKEN=$(printf '%q' "${TELEGRAM_BOT_TOKEN:-}") BOT_EDITOR_PIN=$(printf '%q' "${BOT_EDITOR_PIN:-842019}") SANITY_WRITE_TOKEN=$(printf '%q' "${SANITY_WRITE_TOKEN:-}") TELEGRAM_PROXY_URL=$(printf '%q' "${TELEGRAM_PROXY_URL:-}") CURSOR_API_KEY=$(printf '%q' "${CURSOR_API_KEY:-}") TELEGRAM_USE_POLLING=1 VITE_SITE_URL=$(printf '%q' "${VITE_SITE_URL:-}") bash scripts/server-deploy.sh")"
+            "TELEGRAM_BOT_TOKEN=$(printf '%q' "${TELEGRAM_BOT_TOKEN:-}") BOT_EDITOR_PIN=$(printf '%q' "${BOT_EDITOR_PIN:-842019}") SANITY_WRITE_TOKEN=$(printf '%q' "${SANITY_WRITE_TOKEN:-}") TELEGRAM_PROXY_URL=$(printf '%q' "${TELEGRAM_PROXY_URL:-}") CURSOR_API_KEY=$(printf '%q' "${CURSOR_API_KEY:-}") TELEGRAM_USE_POLLING=1 VITE_SITE_URL=$(printf '%q' "${VITE_SITE_URL:-}") SITE_DOMAIN=$(printf '%q' "${SITE_DOMAIN:-}") bash scripts/server-deploy.sh")"
 
           # Без -T/-tt: при выделении TTY bash -s часто не читает скрипт со stdin и «висит» минутами.
           sshpass -e ssh -T \

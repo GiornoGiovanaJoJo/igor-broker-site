@@ -1,34 +1,39 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import type { InsightBlock } from '../../lib/insights/types';
+import { RichInsightText } from './RichInsightText';
 
 export function InsightBlocksRenderer({ blocks }: { blocks: InsightBlock[] }) {
   return (
-    <div className="insights-body space-y-6 max-w-[680px] mx-auto">
+    <div className="insights-body space-y-7 max-w-[680px] mx-auto">
       {blocks.map((block, i) => {
         switch (block._type) {
           case 'paragraph':
             return (
-              <p key={i} className="text-[17px] sm:text-[18px] leading-[1.75] text-foreground/88 text-pretty">
-                {block.text}
-              </p>
+              <RichInsightText
+                key={i}
+                as="p"
+                text={block.text}
+                className="text-[17px] sm:text-[18px] leading-[1.8] text-insights-prose text-pretty"
+              />
             );
           case 'heading':
             return block.level === 2 ? (
               <h2 key={i} className="insights-display pt-4 text-[26px] sm:text-[30px] font-semibold text-primary text-balance leading-snug">
-                {block.text}
+                <RichInsightText text={block.text} />
               </h2>
             ) : (
               <h3 key={i} className="insights-display pt-2 text-[22px] sm:text-[24px] font-semibold text-primary text-balance leading-snug">
-                {block.text}
+                <RichInsightText text={block.text} />
               </h3>
             );
           case 'bulletList':
             return (
-              <ul key={i} className="space-y-2 pl-5 list-disc marker:text-accent/80">
+              <ul key={i} className="space-y-4 pl-1">
                 {block.items.map((item, j) => (
-                  <li key={j} className="text-[17px] leading-relaxed text-foreground/85 text-pretty pl-1">
-                    {item}
+                  <li key={j} className="flex gap-3 text-[17px] sm:text-[18px] leading-[1.8] text-insights-prose text-pretty">
+                    <span className="mt-[0.65rem] h-1.5 w-1.5 shrink-0 rounded-full bg-accent/75" aria-hidden />
+                    <RichInsightText text={item} />
                   </li>
                 ))}
               </ul>
@@ -37,11 +42,11 @@ export function InsightBlocksRenderer({ blocks }: { blocks: InsightBlock[] }) {
             return (
               <blockquote
                 key={i}
-                className="border-l-2 border-accent/50 pl-5 py-1 text-[18px] italic leading-relaxed text-foreground/80 text-pretty"
+                className="border-l-2 border-accent/50 pl-5 py-1 text-[18px] italic leading-[1.8] text-insights-prose-muted text-pretty"
               >
-                {block.text}
+                <RichInsightText text={block.text} />
                 {block.attribution && (
-                  <footer className="mt-2 text-[14px] not-italic text-muted-foreground">— {block.attribution}</footer>
+                  <footer className="mt-2 text-[14px] not-italic text-insights-prose-muted">— {block.attribution}</footer>
                 )}
               </blockquote>
             );
@@ -74,7 +79,7 @@ export function InsightBlocksRenderer({ blocks }: { blocks: InsightBlock[] }) {
                       key={j}
                       src={img.url}
                       alt={img.alt ?? ''}
-                      className="w-full rounded-sm border border-border object-cover"
+                      className="mx-auto block h-auto max-h-[min(60vh,640px)] w-full rounded-sm border border-border object-contain bg-insights-image-bg"
                       loading="lazy"
                     />
                   ))}

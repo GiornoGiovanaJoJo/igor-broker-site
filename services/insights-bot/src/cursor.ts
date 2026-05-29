@@ -7,10 +7,14 @@ const SYSTEM_PROMPT = `Ты редактор премиальной ленты �
 Преобразуй текст в JSON-массив structured blocks для editorial feed.
 
 Правила:
-- Абзацы через двойной перенос; одиночный перенос внутри абзаца → пробел
-- Списки: bulletList с items
+- Сохраняй текст максимально близко к оригиналу Telegram: эмодзи, тон, переносы смысла
+- НЕ дублируй заголовок документа как heading — если первая строка = title, пропусти её
+- Списки из Telegram (- пункт) → bulletList; в items сохраняй эмодзи в конце строк
+- Жирный текст из Telegram → **такой фрагмент** внутри paragraph (markdown)
+- P.S. и юридические оговорки → отдельный paragraph, можно обернуть фразу в *курсив*
+- @username оставляй как @username в тексте
 - Цитаты: quote с text
-- Заголовки: heading level 2 или 3
+- Подзаголовки только если это явно новая секция, не первая строка поста
 - Без ALL CAPS, без рекламного шума
 - Русская типографика: неразрывный пробел перед ₽, %, м²
 - Верни ТОЛЬКО валидный JSON-массив без markdown-обёртки
@@ -41,6 +45,28 @@ function isValidBlock(item: unknown): item is DraftBlock {
   return ['paragraph', 'heading', 'bulletList', 'quote', 'cta', 'divider'].includes(t ?? '');
 }
 
+function normalizeComparable(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .replace(/[^\p{L}\p{N}\s]/gu, '')
+    .trim();
+}
+
+function dedupeTitleHeading(blocks: DraftBlock[], title: string): DraftBlock[] {
+  if (!blocks.length || blocks[0]._type !== 'heading') return blocks;
+
+  const heading = normalizeComparable(blocks[0].text);
+  const docTitle = normalizeComparable(title);
+  if (!heading || !docTitle) return blocks;
+
+  if (heading === docTitle || docTitle.startsWith(heading) || heading.startsWith(docTitle)) {
+    return blocks.slice(1);
+  }
+
+  return blocks;
+}
+
 export async function improveTextWithCursor(input: {
   title: string;
   excerpt: string;
@@ -65,8 +91,8 @@ ${normalizeLineBreaks(input.body)}
 
   const output = typeof result.result === 'string' ? result.result : JSON.stringify(result.result);
   const blocks = extractJsonArray(output);
-  if (blocks?.length) return blocks;
+  if (blocks?.length) return dedupeTitleHeading(blocks, input.title);
 
   // Fallback: local parser if Cursor returns prose instead of JSON
-  return parseBodyToBlocks(input.body);
+  return dedupeTitleHeading(parseBodyToBlocks(input.body), input.title);
 }

@@ -21,11 +21,12 @@ if [ "${DEPLOY_SCRIPT_REEXEC:-}" != "1" ]; then
 fi
 
 # Frontend build env (Sanity + site URL — без секретов)
+SITE_DOMAIN="${SITE_DOMAIN:-igor-broker.site}"
 cat >"$REPO_ROOT/.env" <<ENV_EOF
 VITE_SANITY_PROJECT_ID=ho7l3gwr
 VITE_SANITY_DATASET=production
 VITE_SANITY_API_VERSION=2024-01-01
-VITE_SITE_URL=${VITE_SITE_URL:-https://6e48a4f79211.vps.myjino.ru}
+VITE_SITE_URL=${VITE_SITE_URL:-https://igor-broker.site}
 ENV_EOF
 
 # Bot env — из переменных окружения CI/SSH (секреты не в git)
@@ -51,7 +52,7 @@ fi
 # Старый production-only node_modules + NODE_ENV в окружении root дают «vite: not found».
 rm -rf node_modules
 NODE_ENV=development npm ci --no-audit --no-fund --loglevel=warn
-NODE_ENV=production npm exec -- vite build
+NODE_ENV=production npm run build
 
 # Sanity Studio → /studio/ (self-hosted on VPS)
 if [ -f sanity/package.json ]; then
@@ -96,13 +97,29 @@ if command -v nginx >/dev/null 2>&1 || [ -x /usr/sbin/nginx ]; then
   # Только conf.d — без symlink в sites-enabled (на части VPS каталог отсутствует или не каталог → ln падает).
   NGINX_SITE="/etc/nginx/conf.d/igor-broker-site.conf"
   mkdir -p "$(dirname "$NGINX_SITE")"
+  if [ -n "$SITE_DOMAIN" ]; then
+    NGINX_SERVER_NAME="$SITE_DOMAIN www.$SITE_DOMAIN"
+  else
+    NGINX_SERVER_NAME="_"
+  fi
   cat >"$NGINX_SITE" <<NGINX_EOF
 server {
     listen 80 default_server;
     listen [::]:80 default_server;
-    server_name _;
+    server_name $NGINX_SERVER_NAME;
     root $REPO_ROOT/dist;
     index index.html;
+
+    location = /robots.txt {
+        try_files \$uri =404;
+        add_header Cache-Control "public, max-age=86400";
+    }
+
+    location = /sitemap.xml {
+        try_files \$uri =404;
+        add_header Cache-Control "public, max-age=3600";
+        default_type application/xml;
+    }
 
     location = /studio {
         return 301 /studio/;

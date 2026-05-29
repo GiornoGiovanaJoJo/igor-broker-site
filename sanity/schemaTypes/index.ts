@@ -109,6 +109,28 @@ export const insightPost = defineType({
     }),
     defineField({ name: 'excerpt', type: 'text', rows: 3, validation: (r) => r.required().max(320) }),
     defineField({
+      name: 'seoTitle',
+      title: 'SEO title',
+      type: 'string',
+      description: 'Переопределение title (до 60 символов). Пусто — используется заголовок.',
+      validation: (r) => r.max(60),
+    }),
+    defineField({
+      name: 'seoDescription',
+      title: 'SEO description',
+      type: 'text',
+      rows: 2,
+      description: 'Переопределение description (до 160 символов). Пусто — excerpt.',
+      validation: (r) => r.max(160),
+    }),
+    defineField({
+      name: 'seoKeywords',
+      title: 'SEO keywords',
+      type: 'array',
+      of: [{ type: 'string' }],
+      description: 'Внутренние ключевые слова (не выводятся в meta keywords).',
+    }),
+    defineField({
       name: 'sourceText',
       title: 'Исходный текст',
       type: 'text',

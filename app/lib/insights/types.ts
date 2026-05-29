@@ -28,6 +28,8 @@ export type InsightPost = {
   title: string;
   slug: string;
   excerpt: string;
+  seoTitle?: string;
+  seoDescription?: string;
   category: InsightCategory;
   coverImage: InsightImage;
   publishedAt: string;

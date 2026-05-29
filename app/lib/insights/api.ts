@@ -1,4 +1,5 @@
 import type { InsightBlock, InsightCategory, InsightPost } from './types';
+import { dedupeTitleHeading } from './postProcessBlocks';
 
 const PAGE_SIZE = 6;
 
@@ -47,6 +48,8 @@ function mapSanityDoc(doc: Record<string, unknown>): InsightPost {
     title: String(doc.title),
     slug,
     excerpt: String(doc.excerpt),
+    seoTitle: doc.seoTitle ? String(doc.seoTitle) : undefined,
+    seoDescription: doc.seoDescription ? String(doc.seoDescription) : undefined,
     category: doc.category as InsightCategory,
     coverImage: {
       url: cover?.asset?.url ?? '',
@@ -54,9 +57,12 @@ function mapSanityDoc(doc: Record<string, unknown>): InsightPost {
     },
     publishedAt: String(doc.publishedAt),
     readingTimeMinutes: Number(doc.readingTimeMinutes ?? 3),
-    blocks: ((doc.blocks as Record<string, unknown>[]) ?? [])
-      .map(mapSanityBlock)
-      .filter((b): b is InsightBlock => b !== null),
+    blocks: dedupeTitleHeading(
+      ((doc.blocks as Record<string, unknown>[]) ?? [])
+        .map(mapSanityBlock)
+        .filter((b): b is InsightBlock => b !== null),
+      String(doc.title),
+    ),
   };
 }
 
@@ -69,7 +75,8 @@ async function getSanityClient() {
         projectId: import.meta.env.VITE_SANITY_PROJECT_ID,
         dataset: import.meta.env.VITE_SANITY_DATASET || 'production',
         apiVersion: import.meta.env.VITE_SANITY_API_VERSION || '2024-01-01',
-        useCdn: true,
+        // Fresh API — CDN can keep an empty "all posts" response after deletes/new publishes.
+        useCdn: false,
         token: import.meta.env.VITE_SANITY_READ_TOKEN,
       }),
     );
@@ -106,7 +113,7 @@ export async function fetchInsightPosts(options: {
 
     const docs = await client.fetch<Record<string, unknown>[]>(
       `*[_type == "insightPost" && defined(publishedAt) ${categoryFilter} ${cursorFilter}] | order(publishedAt desc) [0...${limit + 1}]{
-        _id, title, slug, excerpt, category, publishedAt, readingTimeMinutes,
+        _id, title, slug, excerpt, seoTitle, seoDescription, category, publishedAt, readingTimeMinutes,
         coverImage{ alt, asset->{ url } },
         blocks
       }`,
@@ -135,7 +142,7 @@ export async function fetchInsightBySlug(slug: string): Promise<InsightPost | nu
     const client = await getSanityClient();
     const doc = await client.fetch<Record<string, unknown> | null>(
       `*[_type == "insightPost" && defined(publishedAt) && slug.current == $slug][0]{
-        _id, title, slug, excerpt, category, publishedAt, readingTimeMinutes,
+        _id, title, slug, excerpt, seoTitle, seoDescription, category, publishedAt, readingTimeMinutes,
         coverImage{ alt, asset->{ url } },
         blocks
       }`,
@@ -146,6 +153,15 @@ export async function fetchInsightBySlug(slug: string): Promise<InsightPost | nu
 
   const posts = await loadSeedPosts();
   return posts.find((p) => p.slug === slug) ?? null;
+}
+
+export async function fetchRelatedPosts(
+  slug: string,
+  category: InsightCategory,
+  limit = 3,
+): Promise<InsightPost[]> {
+  const { posts } = await fetchInsightPosts({ limit: limit + 1, category });
+  return posts.filter((p) => p.slug !== slug).slice(0, limit);
 }
 
 export { PAGE_SIZE };

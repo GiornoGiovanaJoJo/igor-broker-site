@@ -5,6 +5,7 @@ import { fetchInsightPosts } from '../../lib/insights/api';
 import type { InsightCategory, InsightPost } from '../../lib/insights/types';
 import { INSIGHT_CATEGORIES } from '../../lib/insights/types';
 import { InsightCard } from './InsightCard';
+import { InsightFeedJsonLd } from './InsightFeedJsonLd';
 
 export function InsightFeed() {
   const [posts, setPosts] = useState<InsightPost[]>([]);
@@ -14,6 +15,11 @@ export function InsightFeed() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [category, setCategory] = useState<InsightCategory | null>(null);
+  const [seoPosts, setSeoPosts] = useState<InsightPost[]>([]);
+
+  useEffect(() => {
+    void fetchInsightPosts({ limit: 10 }).then((result) => setSeoPosts(result.posts));
+  }, []);
 
   const load = useCallback(async (append: boolean, nextCursor: string | null, cat: InsightCategory | null) => {
     try {
@@ -33,9 +39,31 @@ export function InsightFeed() {
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
     setCursor(null);
-    load(false, null, category);
-  }, [category, load]);
+
+    void (async () => {
+      try {
+        setLoading(true);
+        setLoadingMore(false);
+        setError(null);
+        const result = await fetchInsightPosts({ cursor: null, category });
+        if (cancelled) return;
+        setPosts(result.posts);
+        setHasMore(result.hasMore);
+        setCursor(result.nextCursor);
+      } catch {
+        if (cancelled) return;
+        setError('Не удалось загрузить материалы. Попробуйте ещё раз.');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [category]);
 
   return (
     <div className="space-y-10">
@@ -43,11 +71,7 @@ export function InsightFeed() {
         <button
           type="button"
           onClick={() => setCategory(null)}
-          className={`rounded-full border px-3.5 py-1.5 text-[12px] font-medium tracking-wide transition-colors ${
-            category === null
-              ? 'border-accent/40 bg-accent/15 text-accent'
-              : 'border-border bg-card/40 text-muted-foreground hover:border-accent/25'
-          }`}
+          className={`insights-filter-pill ${category === null ? 'insights-filter-pill-active' : 'insights-filter-pill-inactive'}`}
         >
           Все
         </button>
@@ -56,11 +80,7 @@ export function InsightFeed() {
             key={id}
             type="button"
             onClick={() => setCategory(id)}
-            className={`rounded-full border px-3.5 py-1.5 text-[12px] font-medium tracking-wide transition-colors ${
-              category === id
-                ? 'border-accent/40 bg-accent/15 text-accent'
-                : 'border-border bg-card/40 text-muted-foreground hover:border-accent/25'
-            }`}
+            className={`insights-filter-pill ${category === id ? 'insights-filter-pill-active' : 'insights-filter-pill-inactive'}`}
           >
             {label}
           </button>
@@ -70,7 +90,7 @@ export function InsightFeed() {
       {loading && (
         <div className="cards-grid md:grid-cols-2 lg:grid-cols-3">
           {[...Array(3)].map((_, i) => (
-            <div key={i} className="h-[420px] animate-pulse rounded-[26px] bg-card/50 border border-border" />
+            <div key={i} className="h-[420px] animate-pulse rounded-[26px] bg-insights-surface border border-border" />
           ))}
         </div>
       )}
@@ -89,8 +109,10 @@ export function InsightFeed() {
       )}
 
       {!loading && !error && posts.length === 0 && (
-        <p className="text-center text-muted-foreground py-16">Материалы скоро появятся.</p>
+        <p className="text-center text-insights-prose-muted py-16">Материалы скоро появятся.</p>
       )}
+
+      {seoPosts.length > 0 && <InsightFeedJsonLd posts={seoPosts} />}
 
       {!loading && posts.length > 0 && (
         <div className="cards-grid md:grid-cols-2 lg:grid-cols-3">

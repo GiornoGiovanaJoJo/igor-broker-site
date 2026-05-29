@@ -134,13 +134,14 @@ export function parseChannelPostText(raw: string): Pick<PostDraft, 'title' | 'ex
     .trim()
     .slice(0, 120);
 
-  const afterTitle = body.slice(body.indexOf(lines[0] ?? title) + (lines[0]?.length ?? title.length)).trim();
-  const sourceForExcerpt = afterTitle || body;
-  const sentences = sourceForExcerpt.match(/[^.!?…]+[.!?…]+/g) ?? [sourceForExcerpt];
+  const bulletLines = lines.filter((line) => /^[-•*]\s+/.test(line));
+  const excerptFromBullets = bulletLines
+    .slice(0, 2)
+    .map((line) => line.replace(/^[-•*]\s+/, '').trim())
+    .join(' · ');
+
   const excerpt =
-    sentences
-      .slice(0, 3)
-      .join(' ')
+    (excerptFromBullets || title)
       .replace(/\s+/g, ' ')
       .trim()
       .slice(0, 320) || title.slice(0, 320);

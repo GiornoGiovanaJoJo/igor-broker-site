@@ -40,6 +40,20 @@
   --sidebar-accent-foreground: #e6e4df;
   --sidebar-border: rgba(184, 149, 92, 0.12);
   --sidebar-ring: rgba(184, 149, 92, 0.4);
+
+  /* Insights editorial zone */
+  --insights-surface: #0c0c0f;
+  --insights-surface-elevated: #121218;
+  --insights-prose: #ece9e3;
+  --insights-prose-muted: #b8b2a8;
+  --insights-link: #d4bc84;
+  --insights-image-bg: #0a0a0c;
+  --cat-analytics: #8fa8c4;
+  --cat-jk-review: #9cb896;
+  --cat-case: #c4a66a;
+  --cat-mortgage: #a892c4;
+  --cat-market: #c49a8a;
+  --cat-tips: #94b8b0;
 }
 
 .dark {
@@ -116,6 +130,12 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+  --color-insights-surface: var(--insights-surface);
+  --color-insights-surface-elevated: var(--insights-surface-elevated);
+  --color-insights-prose: var(--insights-prose);
+  --color-insights-prose-muted: var(--insights-prose-muted);
+  --color-insights-link: var(--insights-link);
+  --color-insights-image-bg: var(--insights-image-bg);
 }
 
 @layer base {
@@ -212,5 +232,33 @@
 
   .section-lead {
     @apply mx-auto max-w-2xl text-pretty text-[17px] font-light leading-relaxed text-muted-foreground sm:text-[18px];
+  }
+
+  .insights-editorial {
+    --background: var(--insights-surface);
+  }
+
+  .insights-filter-pill {
+    @apply rounded-full border px-3.5 py-1.5 text-[12px] font-medium tracking-wide transition-colors;
+  }
+
+  .insights-filter-pill-active {
+    @apply border-accent/50 bg-accent/20 text-accent shadow-[0_0_20px_rgba(184,149,92,0.12)];
+  }
+
+  .insights-filter-pill-inactive {
+    @apply border-border bg-insights-surface-elevated/80 text-insights-prose-muted hover:border-accent/30 hover:text-insights-prose;
+  }
+
+  .insights-card-shell {
+    @apply border-border/80 bg-insights-surface/90;
+  }
+
+  .insights-prose-text {
+    @apply text-insights-prose;
+  }
+
+  .insights-prose-muted {
+    @apply text-insights-prose-muted;
   }
 }

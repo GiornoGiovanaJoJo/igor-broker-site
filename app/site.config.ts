@@ -10,7 +10,7 @@ export const siteConfig = {
   email: import.meta.env.VITE_EMAIL ?? 'igor@broker.ru',
 
   telegramUsername: 'igorbroker',
-  telegramChannelUsername: 'igorbroker_channel',
+  telegramChannelUsername: 'IgorBroker',
 
   /** MAX (max.ru) — веб и номер для связи */
   maxWebUrl: 'https://web.max.ru/',
