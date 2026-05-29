@@ -45,6 +45,17 @@ rm -rf node_modules
 NODE_ENV=development npm ci --no-audit --no-fund --loglevel=warn
 NODE_ENV=production npm exec -- vite build
 
+# Sanity Studio → /studio/ (self-hosted on VPS)
+if [ -f sanity/package.json ]; then
+  cd sanity
+  rm -rf node_modules
+  NODE_ENV=development npm ci --no-audit --no-fund --loglevel=warn
+  SANITY_STUDIO_PROJECT_ID=ho7l3gwr SANITY_STUDIO_DATASET=production npm run build
+  mkdir -p "$REPO_ROOT/dist/studio"
+  cp -a dist/. "$REPO_ROOT/dist/studio/"
+  cd "$REPO_ROOT"
+fi
+
 # Insights bot
 if [ -f services/insights-bot/package.json ] && [ -f services/insights-bot/.env ]; then
   if ! command -v pm2 >/dev/null 2>&1; then
@@ -87,6 +98,14 @@ server {
 
     location = /favicon.svg {
         add_header Cache-Control "public, max-age=86400";
+    }
+
+    location = /studio {
+        return 301 /studio/;
+    }
+
+    location /studio/ {
+        try_files \$uri \$uri/ /studio/index.html;
     }
 
     location /api/bot/ {
