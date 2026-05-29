@@ -85,17 +85,49 @@ async function getSanityClient() {
 }
 
 let seedCache: InsightPost[] | null = null;
+let snapshotCache: InsightPost[] | null = null;
+
+function dataUrl(filename: string): string {
+  const base = import.meta.env.BASE_URL || '/';
+  return `${base}${base.endsWith('/') ? '' : '/'}data/${filename}`;
+}
+
+async function loadSnapshotPosts(): Promise<InsightPost[]> {
+  if (snapshotCache) return snapshotCache;
+  const res = await fetch(dataUrl('insights-snapshot.json'));
+  if (!res.ok) throw new Error(`snapshot HTTP ${res.status}`);
+  const data = (await res.json()) as { posts: InsightPost[] };
+  snapshotCache = data.posts.sort(
+    (a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime(),
+  );
+  return snapshotCache;
+}
 
 async function loadSeedPosts(): Promise<InsightPost[]> {
   if (seedCache) return seedCache;
-  const base = import.meta.env.BASE_URL || '/';
-  const url = `${base}${base.endsWith('/') ? '' : '/'}data/insights-seed.json`;
-  const res = await fetch(url);
+  const res = await fetch(dataUrl('insights-seed.json'));
   const data = (await res.json()) as { posts: InsightPost[] };
   seedCache = data.posts.sort(
     (a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime(),
   );
   return seedCache;
+}
+
+function paginatePosts(
+  posts: InsightPost[],
+  options: { limit?: number; cursor?: string | null; category?: InsightCategory | null },
+) {
+  const limit = options.limit ?? PAGE_SIZE;
+  let filtered = posts;
+  if (options.category) filtered = filtered.filter((p) => p.category === options.category);
+  if (options.cursor) {
+    const cursorTime = new Date(options.cursor).getTime();
+    filtered = filtered.filter((p) => new Date(p.publishedAt).getTime() < cursorTime);
+  }
+  const hasMore = filtered.length > limit;
+  const slice = filtered.slice(0, limit);
+  const nextCursor = hasMore && slice.length ? slice[slice.length - 1].publishedAt : null;
+  return { posts: slice, hasMore, nextCursor };
 }
 
 export async function fetchInsightPosts(options: {
@@ -105,50 +137,87 @@ export async function fetchInsightPosts(options: {
 }): Promise<{ posts: InsightPost[]; hasMore: boolean; nextCursor: string | null }> {
   const limit = options.limit ?? PAGE_SIZE;
 
+  // #region agent log
+  fetch('http://127.0.0.1:7850/ingest/507d7032-611b-42c7-bbda-f8575b40d7ea',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2376ae'},body:JSON.stringify({sessionId:'2376ae',location:'api.ts:fetchInsightPosts',message:'fetchInsightPosts called',data:{sanityConfigured:sanityConfigured(),limit,category:options.category??null},timestamp:Date.now(),hypothesisId:'D'})}).catch(()=>{});
+  // #endregion
+
   if (sanityConfigured()) {
-    const client = await getSanityClient();
-    const cursorDate = options.cursor ? new Date(options.cursor).toISOString() : null;
-    const categoryFilter = options.category ? `&& category == "${options.category}"` : '';
-    const cursorFilter = cursorDate ? `&& publishedAt < "${cursorDate}"` : '';
+    try {
+      const client = await getSanityClient();
+      const cursorDate = options.cursor ? new Date(options.cursor).toISOString() : null;
+      const categoryFilter = options.category ? `&& category == "${options.category}"` : '';
+      const cursorFilter = cursorDate ? `&& publishedAt < "${cursorDate}"` : '';
 
-    const docs = await client.fetch<Record<string, unknown>[]>(
-      `*[_type == "insightPost" && defined(publishedAt) ${categoryFilter} ${cursorFilter}] | order(publishedAt desc) [0...${limit + 1}]{
-        _id, title, slug, excerpt, seoTitle, seoDescription, category, publishedAt, readingTimeMinutes,
-        coverImage{ alt, asset->{ url } },
-        blocks
-      }`,
-    );
+      const docs = await client.fetch<Record<string, unknown>[]>(
+        `*[_type == "insightPost" && defined(publishedAt) ${categoryFilter} ${cursorFilter}] | order(publishedAt desc) [0...${limit + 1}]{
+          _id, title, slug, excerpt, seoTitle, seoDescription, category, publishedAt, readingTimeMinutes,
+          coverImage{ alt, asset->{ url } },
+          blocks
+        }`,
+      );
 
-    const hasMore = docs.length > limit;
-    const slice = docs.slice(0, limit).map(mapSanityDoc);
-    const nextCursor = hasMore && slice.length ? slice[slice.length - 1].publishedAt : null;
-    return { posts: slice, hasMore, nextCursor };
+      const hasMore = docs.length > limit;
+      const slice = docs.slice(0, limit).map(mapSanityDoc);
+      const nextCursor = hasMore && slice.length ? slice[slice.length - 1].publishedAt : null;
+
+      // #region agent log
+      fetch('http://127.0.0.1:7850/ingest/507d7032-611b-42c7-bbda-f8575b40d7ea',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2376ae'},body:JSON.stringify({sessionId:'2376ae',location:'api.ts:fetchInsightPosts',message:'sanity fetch ok',data:{count:slice.length,hasCover:Boolean(slice[0]?.coverImage?.url),firstTitle:slice[0]?.title??null},timestamp:Date.now(),hypothesisId:'E'})}).catch(()=>{});
+      // #endregion
+
+      return { posts: slice, hasMore, nextCursor };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      // #region agent log
+      fetch('http://127.0.0.1:7850/ingest/507d7032-611b-42c7-bbda-f8575b40d7ea',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2376ae'},body:JSON.stringify({sessionId:'2376ae',location:'api.ts:fetchInsightPosts',message:'sanity fetch failed',data:{error:message},timestamp:Date.now(),hypothesisId:'A'})}).catch(()=>{});
+      // #endregion
+    }
   }
 
-  let posts = await loadSeedPosts();
-  if (options.category) posts = posts.filter((p) => p.category === options.category);
-  if (options.cursor) {
-    const cursorTime = new Date(options.cursor).getTime();
-    posts = posts.filter((p) => new Date(p.publishedAt).getTime() < cursorTime);
+  try {
+    const snapshot = await loadSnapshotPosts();
+    const result = paginatePosts(snapshot, options);
+    // #region agent log
+    fetch('http://127.0.0.1:7850/ingest/507d7032-611b-42c7-bbda-f8575b40d7ea',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2376ae'},body:JSON.stringify({sessionId:'2376ae',location:'api.ts:fetchInsightPosts',message:'snapshot fallback ok',data:{total:snapshot.length,returned:result.posts.length,hasCover:Boolean(result.posts[0]?.coverImage?.url),firstTitle:result.posts[0]?.title??null},timestamp:Date.now(),hypothesisId:'B'})}).catch(()=>{});
+    // #endregion
+    return result;
+  } catch (snapshotErr) {
+    const snapshotMessage = snapshotErr instanceof Error ? snapshotErr.message : String(snapshotErr);
+    // #region agent log
+    fetch('http://127.0.0.1:7850/ingest/507d7032-611b-42c7-bbda-f8575b40d7ea',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2376ae'},body:JSON.stringify({sessionId:'2376ae',location:'api.ts:fetchInsightPosts',message:'snapshot fallback failed',data:{error:snapshotMessage},timestamp:Date.now(),hypothesisId:'B'})}).catch(()=>{});
+    // #endregion
   }
-  const hasMore = posts.length > limit;
-  const slice = posts.slice(0, limit);
-  const nextCursor = hasMore && slice.length ? slice[slice.length - 1].publishedAt : null;
-  return { posts: slice, hasMore, nextCursor };
+
+  const result = paginatePosts(await loadSeedPosts(), options);
+  // #region agent log
+  fetch('http://127.0.0.1:7850/ingest/507d7032-611b-42c7-bbda-f8575b40d7ea',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2376ae'},body:JSON.stringify({sessionId:'2376ae',location:'api.ts:fetchInsightPosts',message:'seed fallback used',data:{returned:result.posts.length},timestamp:Date.now(),hypothesisId:'B'})}).catch(()=>{});
+  // #endregion
+  return result;
 }
 
 export async function fetchInsightBySlug(slug: string): Promise<InsightPost | null> {
   if (sanityConfigured()) {
-    const client = await getSanityClient();
-    const doc = await client.fetch<Record<string, unknown> | null>(
-      `*[_type == "insightPost" && defined(publishedAt) && slug.current == $slug][0]{
-        _id, title, slug, excerpt, seoTitle, seoDescription, category, publishedAt, readingTimeMinutes,
-        coverImage{ alt, asset->{ url } },
-        blocks
-      }`,
-      { slug },
-    );
-    return doc ? mapSanityDoc(doc) : null;
+    try {
+      const client = await getSanityClient();
+      const doc = await client.fetch<Record<string, unknown> | null>(
+        `*[_type == "insightPost" && defined(publishedAt) && slug.current == $slug][0]{
+          _id, title, slug, excerpt, seoTitle, seoDescription, category, publishedAt, readingTimeMinutes,
+          coverImage{ alt, asset->{ url } },
+          blocks
+        }`,
+        { slug },
+      );
+      if (doc) return mapSanityDoc(doc);
+    } catch {
+      // fall through to snapshot/seed
+    }
+  }
+
+  try {
+    const snapshot = await loadSnapshotPosts();
+    const found = snapshot.find((p) => p.slug === slug);
+    if (found) return found;
+  } catch {
+    // fall through to seed
   }
 
   const posts = await loadSeedPosts();

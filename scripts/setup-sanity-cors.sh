@@ -4,7 +4,7 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-ORIGIN="${1:-${VITE_SITE_URL:-https://6e48a4f79211.vps.myjino.ru}}"
+ORIGIN="${1:-${VITE_SITE_URL:-https://igor-broker.site}}"
 PROJECT_ID="${SANITY_STUDIO_PROJECT_ID:-ho7l3gwr}"
 
 ORIGIN="${ORIGIN%/}"

@@ -50,6 +50,13 @@ BOT_EOF
   chmod 600 "$REPO_ROOT/services/insights-bot/.env"
 fi
 
+# Sanity CORS for custom domain (browser API + Studio on VPS).
+if [ -f "$REPO_ROOT/scripts/ensure-sanity-cors.sh" ]; then
+  SANITY_PROJECT_ID=ho7l3gwr VITE_SITE_URL="${VITE_SITE_URL:-https://igor-broker.site}" \
+    SANITY_WRITE_TOKEN="${SANITY_WRITE_TOKEN:-}" \
+    bash "$REPO_ROOT/scripts/ensure-sanity-cors.sh" || true
+fi
+
 # Старый production-only node_modules + NODE_ENV в окружении root дают «vite: not found».
 rm -rf node_modules
 NODE_ENV=development npm ci --no-audit --no-fund --loglevel=warn
