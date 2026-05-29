@@ -1,7 +1,7 @@
 import express from 'express';
 import { botConfigured, env } from './env.js';
 import { createBot } from './bot.js';
-import { collectDiagnostics, getLaunchState, setLaunchState } from './diagnostics.js';
+import { collectDiagnostics, getBotUsername, getLaunchState, setBotUsername, setLaunchState } from './diagnostics.js';
 
 const app = express();
 const usePolling = env.usePolling || !env.publicUrl;
@@ -11,6 +11,7 @@ app.get('/health', (_req, res) => {
   res.json({
     ok: true,
     bot: botConfigured(),
+    botUsername: getBotUsername(),
     mode: usePolling ? 'polling' : 'webhook',
     proxy: Boolean(env.proxyUrl),
     launchState,
@@ -66,18 +67,14 @@ if (botConfigured()) {
     setLaunchState('launching');
 
     bot.telegram
-      .deleteWebhook({ drop_pending_updates: true })
+      .deleteWebhook({ drop_pending_updates: false })
       .catch((err) => console.warn('deleteWebhook:', err instanceof Error ? err.message : err));
 
-    bot.telegram
-      .getMe()
-      .then((me) => console.log('Telegram getMe OK:', me.username, me.id))
-      .catch((err) => console.error('Telegram getMe FAILED:', err));
-
     bot
-      .launch({ dropPendingUpdates: true })
-      .then(() => {
-        console.log('Bot polling started (proxy:', Boolean(env.proxyUrl), ')');
+      .launch({ dropPendingUpdates: false }, () => {
+        const me = bot.botInfo;
+        if (me?.username) setBotUsername(me.username);
+        console.log('Bot polling started @', me?.username, '(proxy:', Boolean(env.proxyUrl), ')');
         setLaunchState('ok');
       })
       .catch((err) => {

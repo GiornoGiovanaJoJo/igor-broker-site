@@ -53,7 +53,9 @@ if [ -f services/insights-bot/package.json ] && [ -f services/insights-bot/.env 
   rm -rf node_modules
   NODE_ENV=development npm ci --no-audit --no-fund --loglevel=warn
   npm run build
-  pm2 startOrReload ecosystem.config.cjs --update-env || pm2 start ecosystem.config.cjs
+  # Сброс старого cluster-режима PM2 — иначе возможен 409 Conflict при polling
+  pm2 delete igor-insights-bot 2>/dev/null || true
+  pm2 start ecosystem.config.cjs --update-env
   pm2 save 2>/dev/null || true
   cd "$REPO_ROOT"
 fi
@@ -110,15 +112,16 @@ fi
 
 echo "Deploy build OK: $REPO_ROOT/dist"
 
-if [ -f services/insights-bot/.env ]; then
-  sleep 3
+if [ -f "$REPO_ROOT/services/insights-bot/.env" ]; then
+  sleep 8
   echo "--- Bot health ---"
-  curl -sf "http://127.0.0.1:8787/health" || echo "health: unavailable"
+  curl -sf --max-time 15 "http://127.0.0.1:8787/health" || echo "health: unavailable"
   echo ""
   echo "--- Bot diag ---"
-  curl -sf "http://127.0.0.1:8787/diag" || echo "diag: unavailable"
+  curl -sf --max-time 60 "http://127.0.0.1:8787/diag" || echo "diag: unavailable"
   echo ""
   if command -v pm2 >/dev/null 2>&1; then
+    pm2 describe igor-insights-bot 2>/dev/null || true
     echo "--- PM2 logs (last 40 lines) ---"
     pm2 logs igor-insights-bot --lines 40 --nostream 2>/dev/null || true
   fi
