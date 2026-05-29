@@ -137,10 +137,6 @@ export async function fetchInsightPosts(options: {
 }): Promise<{ posts: InsightPost[]; hasMore: boolean; nextCursor: string | null }> {
   const limit = options.limit ?? PAGE_SIZE;
 
-  // #region agent log
-  fetch('http://127.0.0.1:7850/ingest/507d7032-611b-42c7-bbda-f8575b40d7ea',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2376ae'},body:JSON.stringify({sessionId:'2376ae',location:'api.ts:fetchInsightPosts',message:'fetchInsightPosts called',data:{sanityConfigured:sanityConfigured(),limit,category:options.category??null},timestamp:Date.now(),hypothesisId:'D'})}).catch(()=>{});
-  // #endregion
-
   if (sanityConfigured()) {
     try {
       const client = await getSanityClient();
@@ -159,39 +155,20 @@ export async function fetchInsightPosts(options: {
       const hasMore = docs.length > limit;
       const slice = docs.slice(0, limit).map(mapSanityDoc);
       const nextCursor = hasMore && slice.length ? slice[slice.length - 1].publishedAt : null;
-
-      // #region agent log
-      fetch('http://127.0.0.1:7850/ingest/507d7032-611b-42c7-bbda-f8575b40d7ea',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2376ae'},body:JSON.stringify({sessionId:'2376ae',location:'api.ts:fetchInsightPosts',message:'sanity fetch ok',data:{count:slice.length,hasCover:Boolean(slice[0]?.coverImage?.url),firstTitle:slice[0]?.title??null},timestamp:Date.now(),hypothesisId:'E'})}).catch(()=>{});
-      // #endregion
-
       return { posts: slice, hasMore, nextCursor };
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      // #region agent log
-      fetch('http://127.0.0.1:7850/ingest/507d7032-611b-42c7-bbda-f8575b40d7ea',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2376ae'},body:JSON.stringify({sessionId:'2376ae',location:'api.ts:fetchInsightPosts',message:'sanity fetch failed',data:{error:message},timestamp:Date.now(),hypothesisId:'A'})}).catch(()=>{});
-      // #endregion
+    } catch {
+      // fall through to snapshot/seed
     }
   }
 
   try {
     const snapshot = await loadSnapshotPosts();
-    const result = paginatePosts(snapshot, options);
-    // #region agent log
-    fetch('http://127.0.0.1:7850/ingest/507d7032-611b-42c7-bbda-f8575b40d7ea',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2376ae'},body:JSON.stringify({sessionId:'2376ae',location:'api.ts:fetchInsightPosts',message:'snapshot fallback ok',data:{total:snapshot.length,returned:result.posts.length,hasCover:Boolean(result.posts[0]?.coverImage?.url),firstTitle:result.posts[0]?.title??null},timestamp:Date.now(),hypothesisId:'B'})}).catch(()=>{});
-    // #endregion
-    return result;
-  } catch (snapshotErr) {
-    const snapshotMessage = snapshotErr instanceof Error ? snapshotErr.message : String(snapshotErr);
-    // #region agent log
-    fetch('http://127.0.0.1:7850/ingest/507d7032-611b-42c7-bbda-f8575b40d7ea',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2376ae'},body:JSON.stringify({sessionId:'2376ae',location:'api.ts:fetchInsightPosts',message:'snapshot fallback failed',data:{error:snapshotMessage},timestamp:Date.now(),hypothesisId:'B'})}).catch(()=>{});
-    // #endregion
+    return paginatePosts(snapshot, options);
+  } catch {
+    // fall through to seed
   }
 
-  const result = paginatePosts(await loadSeedPosts(), options);
-  // #region agent log
-  fetch('http://127.0.0.1:7850/ingest/507d7032-611b-42c7-bbda-f8575b40d7ea',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2376ae'},body:JSON.stringify({sessionId:'2376ae',location:'api.ts:fetchInsightPosts',message:'seed fallback used',data:{returned:result.posts.length},timestamp:Date.now(),hypothesisId:'B'})}).catch(()=>{});
-  // #endregion
-  return result;
+  return paginatePosts(await loadSeedPosts(), options);
 }
 
 export async function fetchInsightBySlug(slug: string): Promise<InsightPost | null> {
