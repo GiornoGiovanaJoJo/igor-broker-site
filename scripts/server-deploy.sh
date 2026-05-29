@@ -33,6 +33,7 @@ BOT_PORT=8787
 BOT_PUBLIC_URL=${BOT_PUBLIC_URL:-https://6e48a4f79211.vps.myjino.ru/api/bot}
 TELEGRAM_PROXY_URL=${TELEGRAM_PROXY_URL:-}
 TELEGRAM_TIMEOUT_MS=${TELEGRAM_TIMEOUT_MS:-60000}
+TELEGRAM_USE_POLLING=1
 SANITY_PROJECT_ID=ho7l3gwr
 SANITY_DATASET=production
 SANITY_WRITE_TOKEN=${SANITY_WRITE_TOKEN:-}
@@ -90,6 +91,9 @@ server {
     location /api/bot/ {
         proxy_pass http://127.0.0.1:8787/;
         proxy_http_version 1.1;
+        proxy_connect_timeout 120s;
+        proxy_send_timeout 120s;
+        proxy_read_timeout 120s;
         proxy_set_header Host \$host;
         proxy_set_header X-Real-IP \$remote_addr;
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;

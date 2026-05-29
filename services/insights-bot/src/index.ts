@@ -8,10 +8,11 @@ app.get('/health', (_req, res) => {
   res.json({
     ok: true,
     bot: botConfigured(),
+    mode: env.usePolling || !env.publicUrl ? 'polling' : 'webhook',
     proxy: Boolean(env.proxyUrl),
     sanity: Boolean(env.sanityProjectId && env.sanityWriteToken),
     cursor: Boolean(env.cursorApiKey),
-    webhook: env.publicUrl
+    webhook: !env.usePolling && env.publicUrl
       ? `${env.publicUrl.replace(/\/$/, '')}/webhook/${env.webhookSecret || 'telegram'}`
       : null,
   });
@@ -29,11 +30,12 @@ if (botConfigured()) {
     }
   });
 
-  if (env.publicUrl) {
+  const usePolling = env.usePolling || !env.publicUrl;
+
+  if (!usePolling && env.publicUrl) {
     const webhookPath = `/webhook/${env.webhookSecret || 'telegram'}`;
     const webhookUrl = `${env.publicUrl.replace(/\/$/, '')}${webhookPath}`;
 
-    // Telegraf ожидает webhookCallback на корневом пути, не через app.use(prefix, …)
     app.use(bot.webhookCallback(webhookPath));
 
     bot.telegram
@@ -42,19 +44,21 @@ if (botConfigured()) {
         console.log(`Webhook set: ${webhookUrl}`);
         const info = await bot.telegram.getWebhookInfo();
         console.log('Webhook info:', JSON.stringify(info));
-        if (info.last_error_message) {
-          console.error('Webhook last error:', info.last_error_message);
-        }
       })
       .catch((err) => {
         console.error('Webhook setup failed:', err);
       });
   } else {
-    bot.launch().then(() => {
-      console.log('Bot started in polling mode');
-    }).catch((err) => {
-      console.error('Bot launch failed:', err);
-    });
+    bot.telegram.deleteWebhook({ drop_pending_updates: true }).catch(() => {});
+
+    bot
+      .launch()
+      .then(() => {
+        console.log('Bot started in polling mode (proxy:', Boolean(env.proxyUrl), ')');
+      })
+      .catch((err) => {
+        console.error('Bot launch failed:', err);
+      });
 
     process.once('SIGINT', () => bot.stop('SIGINT'));
     process.once('SIGTERM', () => bot.stop('SIGTERM'));

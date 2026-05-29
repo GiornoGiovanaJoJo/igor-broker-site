@@ -8,6 +8,7 @@ export const env = {
   publicUrl: process.env.BOT_PUBLIC_URL ?? '',
   proxyUrl: process.env.TELEGRAM_PROXY_URL ?? '',
   telegramTimeoutMs: Number(process.env.TELEGRAM_TIMEOUT_MS || 60_000),
+  usePolling: process.env.TELEGRAM_USE_POLLING === '1' || process.env.TELEGRAM_USE_POLLING === 'true',
   sanityProjectId: process.env.SANITY_PROJECT_ID ?? process.env.SANITY_STUDIO_PROJECT_ID ?? '',
   sanityDataset: process.env.SANITY_DATASET ?? 'production',
   sanityWriteToken: process.env.SANITY_WRITE_TOKEN ?? '',
