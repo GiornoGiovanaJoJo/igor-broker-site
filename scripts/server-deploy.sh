@@ -27,6 +27,7 @@ VITE_SANITY_PROJECT_ID=ho7l3gwr
 VITE_SANITY_DATASET=production
 VITE_SANITY_API_VERSION=2024-01-01
 VITE_SITE_URL=${VITE_SITE_URL:-https://igor-broker.site}
+VITE_YANDEX_METRIKA_ID=${VITE_YANDEX_METRIKA_ID:-109498772}
 ENV_EOF
 
 # Bot env — из переменных окружения CI/SSH (секреты не в git)
