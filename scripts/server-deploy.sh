@@ -14,10 +14,50 @@ git fetch origin "$BRANCH"
 git checkout "$BRANCH"
 git reset --hard "origin/$BRANCH"
 
+# Frontend build env (Sanity + site URL — без секретов)
+cat >"$REPO_ROOT/.env" <<ENV_EOF
+VITE_SANITY_PROJECT_ID=ho7l3gwr
+VITE_SANITY_DATASET=production
+VITE_SANITY_API_VERSION=2024-01-01
+VITE_SITE_URL=${VITE_SITE_URL:-https://6e48a4f79211.vps.myjino.ru}
+ENV_EOF
+
+# Bot env — из переменных окружения CI/SSH (секреты не в git)
+if [ -n "${TELEGRAM_BOT_TOKEN:-}" ]; then
+  mkdir -p "$REPO_ROOT/services/insights-bot"
+  cat >"$REPO_ROOT/services/insights-bot/.env" <<BOT_EOF
+TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+BOT_EDITOR_PIN=${BOT_EDITOR_PIN:-842019}
+BOT_WEBHOOK_SECRET=${BOT_WEBHOOK_SECRET:-igor-insights-webhook}
+BOT_PORT=8787
+BOT_PUBLIC_URL=${BOT_PUBLIC_URL:-https://6e48a4f79211.vps.myjino.ru/api/bot}
+TELEGRAM_PROXY_URL=${TELEGRAM_PROXY_URL:-}
+TELEGRAM_TIMEOUT_MS=${TELEGRAM_TIMEOUT_MS:-60000}
+SANITY_PROJECT_ID=ho7l3gwr
+SANITY_DATASET=production
+SANITY_WRITE_TOKEN=${SANITY_WRITE_TOKEN:-}
+BOT_EOF
+  chmod 600 "$REPO_ROOT/services/insights-bot/.env"
+fi
+
 # Старый production-only node_modules + NODE_ENV в окружении root дают «vite: not found».
 rm -rf node_modules
 NODE_ENV=development npm ci --no-audit --no-fund --loglevel=warn
 NODE_ENV=production npm exec -- vite build
+
+# Insights bot
+if [ -f services/insights-bot/package.json ] && [ -f services/insights-bot/.env ]; then
+  if ! command -v pm2 >/dev/null 2>&1; then
+    npm install -g pm2 --no-audit --no-fund --loglevel=warn
+  fi
+  cd services/insights-bot
+  rm -rf node_modules
+  NODE_ENV=development npm ci --no-audit --no-fund --loglevel=warn
+  npm run build
+  pm2 startOrReload ecosystem.config.cjs --update-env || pm2 start ecosystem.config.cjs
+  pm2 save 2>/dev/null || true
+  cd "$REPO_ROOT"
+fi
 
 # nginx по умолчанию отдаёт Welcome — подключаем собранный dist как основной сайт на :80.
 # Неинтерактивный SSH часто без /usr/sbin в PATH → command -v nginx молча пропускал блок.
@@ -45,6 +85,15 @@ server {
 
     location = /favicon.svg {
         add_header Cache-Control "public, max-age=86400";
+    }
+
+    location /api/bot/ {
+        proxy_pass http://127.0.0.1:8787/;
+        proxy_http_version 1.1;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
     }
 }
 NGINX_EOF

@@ -1,0 +1,23 @@
+{
+  "name": "igor-broker-sanity",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "sanity dev",
+    "build": "sanity build",
+    "deploy": "sanity deploy",
+    "seed": "tsx scripts/seed.ts"
+  },
+  "dependencies": {
+    "@sanity/client": "^7.22.1",
+    "dotenv": "^16.6.1",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "sanity": "^3.68.0",
+    "styled-components": "^6.1.13"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.0",
+    "typescript": "~5.7.2"
+  }
+}

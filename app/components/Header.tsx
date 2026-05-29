@@ -12,6 +12,8 @@ const NAV = [
   { id: 'faq', label: 'FAQ' },
 ] as const;
 
+const ROUTE_NAV = [{ to: '/insights', label: 'Аналитика', accent: true }] as const;
+
 export function Header() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -76,7 +78,20 @@ export function Header() {
               </span>
             </Link>
 
-            <nav className="hidden lg:flex items-center gap-10" aria-label="Основное меню">
+            <nav className="hidden lg:flex items-center gap-8 xl:gap-10" aria-label="Основное меню">
+              {ROUTE_NAV.map((item) => (
+                <Link
+                  key={item.to}
+                  to={item.to}
+                  className={`text-[14px] tracking-wide transition-colors duration-300 ${
+                    item.accent
+                      ? 'text-accent/95 hover:text-accent font-medium'
+                      : 'text-foreground/75 hover:text-accent'
+                  } ${location.pathname.startsWith(item.to) ? 'text-accent' : ''}`}
+                >
+                  {item.label}
+                </Link>
+              ))}
               {NAV.map((item) => (
                 <button
                   key={item.id}
@@ -147,6 +162,16 @@ export function Header() {
           aria-label="Мобильная навигация"
         >
           <nav className="flex flex-col gap-1 max-w-md mx-auto" aria-label="Мобильное меню">
+            {ROUTE_NAV.map((item) => (
+              <Link
+                key={item.to}
+                to={item.to}
+                onClick={() => setMobileOpen(false)}
+                className="border-b border-border py-4 text-left text-[17px] font-medium text-accent"
+              >
+                {item.label}
+              </Link>
+            ))}
             {NAV.map((item) => (
               <button
                 key={item.id}
