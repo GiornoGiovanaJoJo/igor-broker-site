@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import { Loader2 } from 'lucide-react';
-import { fetchInsightPosts } from '../../lib/insights/api';
+import { fetchInsightPosts, PAGE_SIZE } from '../../lib/insights/api';
 import type { InsightCategory, InsightPost } from '../../lib/insights/types';
 import { INSIGHT_CATEGORIES } from '../../lib/insights/types';
 import { InsightCard } from './InsightCard';
@@ -16,10 +16,6 @@ export function InsightFeed() {
   const [error, setError] = useState<string | null>(null);
   const [category, setCategory] = useState<InsightCategory | null>(null);
   const [seoPosts, setSeoPosts] = useState<InsightPost[]>([]);
-
-  useEffect(() => {
-    void fetchInsightPosts({ limit: 10 }).then((result) => setSeoPosts(result.posts));
-  }, []);
 
   const load = useCallback(async (append: boolean, nextCursor: string | null, cat: InsightCategory | null) => {
     try {
@@ -47,9 +43,14 @@ export function InsightFeed() {
         setLoading(true);
         setLoadingMore(false);
         setError(null);
-        const result = await fetchInsightPosts({ cursor: null, category });
+        const result = await fetchInsightPosts({
+          cursor: null,
+          category,
+          limit: 10,
+        });
         if (cancelled) return;
         setPosts(result.posts);
+        setSeoPosts(result.posts);
         setHasMore(result.hasMore);
         setCursor(result.nextCursor);
       } catch {
