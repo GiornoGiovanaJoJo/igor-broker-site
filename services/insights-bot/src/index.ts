@@ -7,52 +7,25 @@ import { collectDiagnostics, getBotUsername, getLaunchState, setBotUsername, set
 const app = express();
 const usePolling = env.usePolling || !env.publicUrl;
 
-async function withRetry<T>(label: string, fn: () => Promise<T>, attempts = 5): Promise<T> {
-  let last: unknown;
-  for (let i = 0; i < attempts; i++) {
-    try {
-      return await fn();
-    } catch (err) {
-      last = err;
+function startPollingBot(bot: Telegraf, attempt = 1) {
+  if (attempt === 1) setLaunchState('launching');
+
+  bot
+    .launch({ dropPendingUpdates: false }, () => {
+      const me = bot.botInfo;
+      if (me?.username) setBotUsername(me.username);
+      console.log('Bot polling started @', me?.username, '(proxy:', Boolean(env.proxyUrl), ')');
+      setLaunchState('ok');
+    })
+    .catch((err: unknown) => {
       const msg = err instanceof Error ? err.message : String(err);
-      console.warn(`${label} attempt ${i + 1}/${attempts} failed:`, msg);
-      if (i < attempts - 1) {
-        await new Promise((resolve) => setTimeout(resolve, 3000 * (i + 1)));
+      console.error(`Bot launch attempt ${attempt}/5 failed:`, msg);
+      if (attempt >= 5) {
+        setLaunchState('error', msg);
+        return;
       }
-    }
-  }
-  throw last;
-}
-
-async function startPollingBot(bot: Telegraf) {
-  setLaunchState('launching');
-  try {
-    const me = await withRetry('getMe', () => bot.telegram.getMe());
-    setBotUsername(me.username);
-    console.log('Telegram getMe OK:', me.username, me.id);
-
-    try {
-      await withRetry('deleteWebhook', () =>
-        bot.telegram.deleteWebhook({ drop_pending_updates: false }),
-      );
-    } catch (err) {
-      console.warn(
-        'deleteWebhook failed, starting polling anyway:',
-        err instanceof Error ? err.message : err,
-      );
-    }
-
-    setLaunchState('ok');
-    console.log('Bot polling starting @', me.username, '(proxy:', Boolean(env.proxyUrl), ')');
-
-    void bot.startPolling().catch((err) => {
-      console.error('Polling stopped:', err);
-      setLaunchState('error', err instanceof Error ? err.message : String(err));
+      setTimeout(() => startPollingBot(bot, attempt + 1), 3000 * attempt);
     });
-  } catch (err) {
-    console.error('Bot start failed:', err);
-    setLaunchState('error', err instanceof Error ? err.message : String(err));
-  }
 }
 
 app.get('/health', (_req, res) => {
