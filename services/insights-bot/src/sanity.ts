@@ -52,6 +52,7 @@ export async function publishDraft(
   coverBuffer: Buffer | null,
   coverFilename: string,
   publish: boolean,
+  galleryBuffers: { buffer: Buffer; filename: string }[] = [],
 ): Promise<{ id: string; slug: string }> {
   if (!sanityConfigured()) {
     throw new Error('Sanity не настроен (SANITY_PROJECT_ID + SANITY_WRITE_TOKEN)');
@@ -68,6 +69,19 @@ export async function publishDraft(
     coverImage = await uploadTelegramPhoto(coverBuffer, coverFilename);
   }
 
+  const blocks = draft.blocks.map(toSanityBlock);
+
+  if (galleryBuffers.length > 0) {
+    const images = await Promise.all(
+      galleryBuffers.map((item, index) => uploadTelegramPhoto(item.buffer, item.filename || `gallery-${index}.jpg`)),
+    );
+    blocks.push({
+      _type: 'insightBlockImageGallery',
+      _key: crypto.randomUUID(),
+      images,
+    });
+  }
+
   const doc = {
     _type: 'insightPost' as const,
     title: draft.title,
@@ -76,7 +90,8 @@ export async function publishDraft(
     category: draft.category as InsightCategory,
     publishedAt: publish ? new Date().toISOString() : undefined,
     readingTimeMinutes,
-    blocks: draft.blocks.map(toSanityBlock),
+    sourceText: draft.body,
+    blocks,
     ...(coverImage ? { coverImage } : {}),
   };
 

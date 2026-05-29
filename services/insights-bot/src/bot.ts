@@ -3,9 +3,18 @@ import type { Context } from 'telegraf';
 import { env, botConfigured, sanityConfigured, cursorConfigured } from './env.js';
 import { fetchBuffer, getTelegrafOptions } from './telegram.js';
 import { normalizeDraftText, parseBodyToBlocks, slugifyTitle } from './format.js';
-import { improveTextWithCursor } from './cursor.js';
+import { formatDraftBody } from './format-api.js';
 import { buildPreviewMessage } from './preview.js';
 import { publishDraft } from './sanity.js';
+import {
+  buildImportDraft,
+  collectAlbumMessages,
+  extractPhotoFileIds,
+  fetchChannelMessageById,
+  isFromSourceChannel,
+  messageText,
+  parseChannelPostUrl,
+} from './channel-import.js';
 import {
   CATEGORY_LABELS,
   clearDraft,
@@ -29,7 +38,7 @@ function previewKeyboard() {
     [Markup.button.callback('📝 Черновик', 'action:draft')],
   ];
   if (cursorConfigured()) {
-    rows.push([Markup.button.callback('✨ Улучшить текст (Cursor)', 'action:improve')]);
+    rows.push([Markup.button.callback('✨ Переформатировать (Cursor)', 'action:improve')]);
   }
   rows.push([Markup.button.callback('❌ Отмена', 'action:cancel')]);
   return Markup.inlineKeyboard(rows);
@@ -38,6 +47,7 @@ function previewKeyboard() {
 function mainMenuKeyboard() {
   return Markup.inlineKeyboard([
     [Markup.button.callback('➕ Создать пост', 'action:create')],
+    [Markup.button.callback('📥 Импорт из @IgorBroker', 'action:import')],
     [Markup.button.callback('ℹ️ Помощь', 'action:help')],
   ]);
 }
@@ -60,14 +70,16 @@ function helpText(): string {
     '*Insights Bot* — редакторская лента Igor Broker',
     '',
     '1. Введите PIN редактора',
-    '2. Создайте пост: категория → заголовок → лид → тело → обложка',
+    '2. Создайте пост вручную или импортируйте из канала @IgorBroker',
     '3. Проверьте предпросмотр и опубликуйте в Sanity',
     '',
-    'Форматирование тела:',
-    '• Пустая строка = новый абзац',
-    '• `- пункт` или `1. пункт` = список',
-    '• `> цитата` = цитата',
-    '• `## Заголовок` = подзаголовок',
+    '*Импорт из канала:*',
+    '• Перешлите пост из @IgorBroker боту — один шаг',
+    '• Или отправьте ссылку вида `https://t.me/IgorBroker/123`',
+    '• Фото, текст и форматирование Cursor — автоматически',
+    '',
+    'Тело материала — обычный текст без разметки.',
+    'Cursor автоматически оформит абзацы, списки и подзаголовки.',
     '',
     sanityConfigured() ? '✅ Sanity подключён' : '⚠️ Sanity не настроен',
     cursorConfigured() ? '✅ Cursor AI доступен' : '⚠️ Cursor API не настроен',
@@ -95,6 +107,108 @@ export function createBot(): Telegraf {
     await ctx.reply(helpText(), { parse_mode: 'Markdown', ...mainMenuKeyboard() });
   });
 
+  bot.action('action:import', async (ctx) => {
+    await ctx.answerCbQuery();
+    const session = getSession(ctx.from!.id);
+    if (!session.authenticated) {
+      await ctx.reply('Сначала введите PIN через /start');
+      return;
+    }
+    clearDraft(ctx.from!.id);
+    session.step = 'import';
+    await ctx.reply(
+      [
+        '📥 *Импорт из @IgorBroker*',
+        '',
+        'Перешлите пост из канала сюда — или отправьте ссылку:',
+        '`https://t.me/IgorBroker/123`',
+        '',
+        'Бот сам подтянет текст и фото, оформит через Cursor и покажет предпросмотр.',
+      ].join('\n'),
+      { parse_mode: 'Markdown', ...Markup.inlineKeyboard([[Markup.button.callback('❌ Отмена', 'action:cancel')]]) },
+    );
+  });
+
+  async function finalizeImport(ctx: Context): Promise<void> {
+    const session = getSession(ctx.from!.id);
+    if (!session.draft.title || !session.draft.body) {
+      await ctx.reply('Не удалось извлечь текст из поста.');
+      return;
+    }
+
+    if (cursorConfigured()) {
+      await ctx.reply('✨ Cursor оформляет текст…');
+      try {
+        const { blocks } = await formatDraftBody({
+          title: session.draft.title,
+          excerpt: session.draft.excerpt ?? session.draft.title,
+          body: session.draft.body,
+        });
+        session.draft.blocks = blocks;
+      } catch {
+        session.draft.blocks = parseBodyToBlocks(session.draft.body);
+        await ctx.reply('⚠️ Cursor недоступен — сохранён базовый формат.');
+      }
+    } else {
+      session.draft.blocks = parseBodyToBlocks(session.draft.body);
+    }
+
+    if (session.draft.category) {
+      session.step = 'preview';
+      await ctx.reply(`📥 Импорт готов.\n\n${buildPreviewMessage(session.draft)}`, previewKeyboard());
+      return;
+    }
+
+    session.step = 'category';
+    await ctx.reply('Категорию определить не удалось — выберите вручную:', categoryKeyboard());
+  }
+
+  async function importFromMessages(
+    ctx: Context,
+    messages: import('telegraf/types').Message[],
+    sourceUrl?: string,
+  ): Promise<void> {
+    const session = getSession(ctx.from!.id);
+    if (!session.authenticated) {
+      await ctx.reply('Введите /start и PIN для доступа.');
+      return;
+    }
+
+    const text = messages.map(messageText).find(Boolean) ?? '';
+    const photos = extractPhotoFileIds(messages);
+    if (!text && !photos.coverFileId) {
+      await ctx.reply('В посте нет текста и фото.');
+      return;
+    }
+
+    clearDraft(ctx.from!.id);
+    session.authenticated = true;
+    Object.assign(session.draft, buildImportDraft(text, photos, sourceUrl));
+
+    await ctx.reply('📥 Импортирую пост из @IgorBroker…');
+    await finalizeImport(ctx);
+  }
+
+  async function importFromUrl(ctx: Context, messageId: number): Promise<void> {
+    const session = getSession(ctx.from!.id);
+    if (!session.authenticated) {
+      await ctx.reply('Введите /start и PIN для доступа.');
+      return;
+    }
+
+    await ctx.reply('📥 Загружаю пост по ссылке…');
+    try {
+      const message = await fetchChannelMessageById(ctx, messageId);
+      const sourceUrl = `https://t.me/${env.channelUsername}/${messageId}`;
+      await importFromMessages(ctx, [message], sourceUrl);
+    } catch (err) {
+      const hint =
+        'Не удалось получить пост по ссылке. Перешлите его из канала вручную — или добавьте бота администратором в @IgorBroker.';
+      await ctx.reply(`${hint}\n\n${err instanceof Error ? err.message : 'unknown'}`);
+      session.step = 'import';
+    }
+  }
+
   bot.action('action:create', async (ctx) => {
     await ctx.answerCbQuery();
     const session = getSession(ctx.from!.id);
@@ -114,6 +228,16 @@ export function createBot(): Telegraf {
 
     const category = ctx.match[1] as InsightCategory;
     session.draft.category = category;
+
+    if (session.draft.title && session.draft.body && session.draft.blocks?.length) {
+      session.step = 'preview';
+      await ctx.reply(`Категория: *${CATEGORY_LABELS[category]}*\n\n${buildPreviewMessage(session.draft)}`, {
+        parse_mode: 'Markdown',
+        ...previewKeyboard(),
+      });
+      return;
+    }
+
     session.step = 'title';
     await ctx.reply(`Категория: *${CATEGORY_LABELS[category]}*\n\nВведите заголовок:`, {
       parse_mode: 'Markdown',
@@ -143,13 +267,14 @@ export function createBot(): Telegraf {
       return;
     }
 
-    await ctx.reply('✨ Cursor улучшает текст…');
+    await ctx.reply('✨ Cursor переформатирует текст…');
     try {
-      session.draft.blocks = await improveTextWithCursor({
+      const { blocks } = await formatDraftBody({
         title: session.draft.title,
         excerpt: session.draft.excerpt,
         body: session.draft.body,
       });
+      session.draft.blocks = blocks;
       await ctx.reply('Текст обновлён.\n\n' + buildPreviewMessage(session.draft), previewKeyboard());
     } catch (err) {
       await ctx.reply(`Ошибка Cursor: ${err instanceof Error ? err.message : 'unknown'}`);
@@ -171,7 +296,24 @@ export function createBot(): Telegraf {
       coverFilename = downloaded.filename;
     }
 
-    const { id, slug } = await publishDraft(session.draft, coverBuffer, coverFilename, publish);
+    const galleryBuffers: { buffer: Buffer; filename: string }[] = [];
+    if (session.draft.galleryFileIds?.length) {
+      for (const [index, fileId] of session.draft.galleryFileIds.entries()) {
+        const downloaded = await downloadPhoto(ctx, fileId);
+        galleryBuffers.push({
+          buffer: downloaded.buffer,
+          filename: `gallery-${index}-${Date.now()}.jpg`,
+        });
+      }
+    }
+
+    const { id, slug } = await publishDraft(
+      session.draft,
+      coverBuffer,
+      coverFilename,
+      publish,
+      galleryBuffers,
+    );
     clearDraft(ctx.from!.id);
     session.step = 'idle';
 
@@ -202,6 +344,17 @@ export function createBot(): Telegraf {
 
   bot.on('photo', async (ctx) => {
     const session = getSession(ctx.from!.id);
+    if (!session.authenticated) return;
+
+    const canImport = session.step === 'import' || isFromSourceChannel(ctx.message);
+
+    if (canImport) {
+      collectAlbumMessages(ctx, async (messages) => {
+        await importFromMessages(ctx, messages);
+      });
+      return;
+    }
+
     if (session.step !== 'photo') return;
 
     const photos = ctx.message.photo;
@@ -249,6 +402,29 @@ export function createBot(): Telegraf {
       return;
     }
 
+    const channelLink = parseChannelPostUrl(text);
+    if (channelLink) {
+      await importFromUrl(ctx, channelLink.messageId);
+      return;
+    }
+
+    if (session.step === 'import') {
+      if (isFromSourceChannel(ctx.message)) {
+        await importFromMessages(ctx, [ctx.message]);
+        return;
+      }
+      await ctx.reply(
+        'Перешлите пост из @IgorBroker или отправьте ссылку вида https://t.me/IgorBroker/123',
+        Markup.inlineKeyboard([[Markup.button.callback('❌ Отмена', 'action:cancel')]]),
+      );
+      return;
+    }
+
+    if (session.step === 'idle' && isFromSourceChannel(ctx.message)) {
+      await importFromMessages(ctx, [ctx.message]);
+      return;
+    }
+
     switch (session.step) {
       case 'title':
         session.draft.title = normalizeDraftText(text);
@@ -259,17 +435,31 @@ export function createBot(): Telegraf {
       case 'excerpt':
         session.draft.excerpt = normalizeDraftText(text);
         session.step = 'body';
-        await ctx.reply(
-          'Введите тело материала.\n\nПустая строка = абзац. Списки: `- пункт`. Цитаты: `> текст`.',
-        );
+        await ctx.reply('Введите тело материала обычным текстом — Cursor сам оформит абзацы и списки.');
         break;
 
-      case 'body':
+      case 'body': {
         session.draft.body = normalizeDraftText(text);
-        session.draft.blocks = parseBodyToBlocks(session.draft.body);
+        if (cursorConfigured()) {
+          await ctx.reply('✨ Cursor оформляет текст…');
+          try {
+            const { blocks } = await formatDraftBody({
+              title: session.draft.title ?? '',
+              excerpt: session.draft.excerpt ?? '',
+              body: session.draft.body,
+            });
+            session.draft.blocks = blocks;
+          } catch {
+            session.draft.blocks = parseBodyToBlocks(session.draft.body);
+            await ctx.reply('⚠️ Cursor недоступен — сохранён базовый формат.');
+          }
+        } else {
+          session.draft.blocks = parseBodyToBlocks(session.draft.body);
+        }
         session.step = 'photo';
         await ctx.reply('Отправьте обложку (фото) или пропустите:', photoKeyboard());
         break;
+      }
 
       default:
         await ctx.reply('Выберите действие:', mainMenuKeyboard());

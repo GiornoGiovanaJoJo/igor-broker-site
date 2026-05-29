@@ -41,6 +41,8 @@ TELEGRAM_PROXY_URL=${TELEGRAM_PROXY_URL:-}
 SANITY_PROJECT_ID=ho7l3gwr
 SANITY_DATASET=production
 SANITY_WRITE_TOKEN=${SANITY_WRITE_TOKEN:-}
+TELEGRAM_CHANNEL_USERNAME=${TELEGRAM_CHANNEL_USERNAME:-IgorBroker}
+TELEGRAM_CHANNEL_ID=${TELEGRAM_CHANNEL_ID:-}
 CURSOR_API_KEY=${CURSOR_API_KEY:-}
 BOT_EOF
   chmod 600 "$REPO_ROOT/services/insights-bot/.env"
@@ -56,7 +58,10 @@ if [ -f sanity/package.json ]; then
   cd sanity
   rm -rf node_modules
   NODE_ENV=development npm ci --no-audit --no-fund --loglevel=warn
-  SANITY_STUDIO_PROJECT_ID=ho7l3gwr SANITY_STUDIO_DATASET=production npm run build
+  SANITY_STUDIO_PROJECT_ID=ho7l3gwr SANITY_STUDIO_DATASET=production \
+  SANITY_STUDIO_FORMAT_API_URL=/api/bot/format \
+  SANITY_STUDIO_EDITOR_PIN=${BOT_EDITOR_PIN:-842019} \
+  npm run build
   mkdir -p "$REPO_ROOT/dist/studio"
   cp -a dist/. "$REPO_ROOT/dist/studio/"
   cd "$REPO_ROOT"
@@ -105,6 +110,13 @@ server {
 
     location ^~ /studio/ {
         try_files \$uri \$uri/ /studio/index.html;
+    }
+
+    # Studio requests /manifest.webmanifest at site root — serve studio manifest, not SPA index.html
+    location = /manifest.webmanifest {
+        alias $REPO_ROOT/dist/studio/manifest.webmanifest;
+        default_type application/manifest+json;
+        add_header Cache-Control "public, max-age=86400";
     }
 
     location / {

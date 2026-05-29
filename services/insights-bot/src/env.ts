@@ -26,6 +26,8 @@ export const env = {
   sanityWriteToken: process.env.SANITY_WRITE_TOKEN ?? '',
   cursorApiKey: process.env.CURSOR_API_KEY ?? '',
   openaiApiKey: process.env.OPENAI_API_KEY ?? '',
+  channelUsername: process.env.TELEGRAM_CHANNEL_USERNAME ?? 'IgorBroker',
+  channelId: process.env.TELEGRAM_CHANNEL_ID ?? '',
 };
 
 export function botConfigured(): boolean {

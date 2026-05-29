@@ -108,6 +108,14 @@ export const insightPost = defineType({
       validation: (r) => r.required(),
     }),
     defineField({ name: 'excerpt', type: 'text', rows: 3, validation: (r) => r.required().max(320) }),
+    defineField({
+      name: 'sourceText',
+      title: 'Исходный текст',
+      type: 'text',
+      rows: 14,
+      description:
+        'Пишите обычным текстом без разметки. Меню документа (⋯) → «✨ Форматировать (Cursor)» — блоки ниже заполнятся автоматически.',
+    }),
     defineField({ name: 'category', type: 'insightCategory', validation: (r) => r.required() }),
     defineField({
       name: 'coverImage',

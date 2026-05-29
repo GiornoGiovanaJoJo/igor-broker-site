@@ -9,6 +9,7 @@ export type InsightCategory =
 export type WizardStep =
   | 'idle'
   | 'pin'
+  | 'import'
   | 'category'
   | 'title'
   | 'excerpt'
@@ -24,8 +25,10 @@ export type PostDraft = {
   body?: string;
   category?: InsightCategory;
   coverFileId?: string;
+  galleryFileIds?: string[];
   blocks?: DraftBlock[];
   slug?: string;
+  sourceMessageUrl?: string;
 };
 
 export type UserSession = {

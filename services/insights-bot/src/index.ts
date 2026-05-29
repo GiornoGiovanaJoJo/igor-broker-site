@@ -1,10 +1,12 @@
 import express from 'express';
 import type { Telegraf } from 'telegraf';
-import { botConfigured, env } from './env.js';
+import { botConfigured, cursorConfigured, env } from './env.js';
 import { createBot } from './bot.js';
 import { collectDiagnostics, getBotUsername, getLaunchState, setBotUsername, setLaunchState } from './diagnostics.js';
+import { handleFormatRequest } from './format-api.js';
 
 const app = express();
+app.use(express.json({ limit: '512kb' }));
 const usePolling = env.usePolling || !env.publicUrl;
 
 function startPollingBot(bot: Telegraf, attempt = 1) {
@@ -40,6 +42,18 @@ app.get('/health', (_req, res) => {
     launchError,
     sanity: Boolean(env.sanityProjectId && env.sanityWriteToken),
     cursor: Boolean(env.cursorApiKey),
+  });
+});
+
+app.post('/format', (req, res) => {
+  void handleFormatRequest(req, res);
+});
+
+app.get('/format/health', (_req, res) => {
+  res.json({
+    ok: true,
+    cursor: cursorConfigured(),
+    pinRequired: Boolean(env.editorPin),
   });
 });
 
