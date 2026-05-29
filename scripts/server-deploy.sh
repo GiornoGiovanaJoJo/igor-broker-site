@@ -14,6 +14,12 @@ git fetch origin "$BRANCH"
 git checkout "$BRANCH"
 git reset --hard "origin/$BRANCH"
 
+# После reset на диске новая версия скрипта — перезапускаем, иначе выполняется старый код из памяти.
+if [ "${DEPLOY_SCRIPT_REEXEC:-}" != "1" ]; then
+  export DEPLOY_SCRIPT_REEXEC=1
+  exec bash "$REPO_ROOT/scripts/server-deploy.sh" "$@"
+fi
+
 # Frontend build env (Sanity + site URL — без секретов)
 cat >"$REPO_ROOT/.env" <<ENV_EOF
 VITE_SANITY_PROJECT_ID=ho7l3gwr
@@ -54,6 +60,12 @@ if [ -f sanity/package.json ]; then
   mkdir -p "$REPO_ROOT/dist/studio"
   cp -a dist/. "$REPO_ROOT/dist/studio/"
   cd "$REPO_ROOT"
+  echo "Sanity Studio built: $(du -sh "$REPO_ROOT/dist/studio" 2>/dev/null | cut -f1 || echo ok)"
+fi
+
+if [ ! -f "$REPO_ROOT/dist/studio/index.html" ]; then
+  echo "ERROR: dist/studio/index.html missing after build"
+  exit 1
 fi
 
 # Insights bot
@@ -87,6 +99,14 @@ server {
     root $REPO_ROOT/dist;
     index index.html;
 
+    location = /studio {
+        return 301 /studio/;
+    }
+
+    location ^~ /studio/ {
+        try_files \$uri \$uri/ /studio/index.html;
+    }
+
     location / {
         try_files \$uri \$uri/ /index.html;
     }
@@ -98,14 +118,6 @@ server {
 
     location = /favicon.svg {
         add_header Cache-Control "public, max-age=86400";
-    }
-
-    location = /studio {
-        return 301 /studio/;
-    }
-
-    location /studio/ {
-        try_files \$uri \$uri/ /studio/index.html;
     }
 
     location /api/bot/ {
