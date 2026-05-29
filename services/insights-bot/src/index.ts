@@ -4,15 +4,17 @@ import { createBot } from './bot.js';
 
 const app = express();
 
+const usePolling = env.usePolling || !env.publicUrl;
+
 app.get('/health', (_req, res) => {
   res.json({
     ok: true,
     bot: botConfigured(),
-    mode: env.usePolling || !env.publicUrl ? 'polling' : 'webhook',
+    mode: usePolling ? 'polling' : 'webhook',
     proxy: Boolean(env.proxyUrl),
     sanity: Boolean(env.sanityProjectId && env.sanityWriteToken),
     cursor: Boolean(env.cursorApiKey),
-    webhook: !env.usePolling && env.publicUrl
+    webhook: !usePolling && env.publicUrl
       ? `${env.publicUrl.replace(/\/$/, '')}/webhook/${env.webhookSecret || 'telegram'}`
       : null,
   });
@@ -29,8 +31,6 @@ if (botConfigured()) {
       /* ignore */
     }
   });
-
-  const usePolling = env.usePolling || !env.publicUrl;
 
   if (!usePolling && env.publicUrl) {
     const webhookPath = `/webhook/${env.webhookSecret || 'telegram'}`;

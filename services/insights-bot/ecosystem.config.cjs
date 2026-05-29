@@ -10,6 +10,7 @@ module.exports = {
       env: {
         NODE_ENV: 'production',
         BOT_PORT: 8787,
+        TELEGRAM_USE_POLLING: '1',
       },
     },
   ],
