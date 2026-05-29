@@ -33,8 +33,8 @@ if (botConfigured()) {
     const webhookPath = `/webhook/${env.webhookSecret || 'telegram'}`;
     const webhookUrl = `${env.publicUrl.replace(/\/$/, '')}${webhookPath}`;
 
-    // Webhook ДО express.json() — иначе body уже consumed и апдейты не обрабатываются
-    app.use(webhookPath, bot.webhookCallback(webhookPath));
+    // Telegraf ожидает webhookCallback на корневом пути, не через app.use(prefix, …)
+    app.use(bot.webhookCallback(webhookPath));
 
     bot.telegram
       .setWebhook(webhookUrl, { drop_pending_updates: true })
