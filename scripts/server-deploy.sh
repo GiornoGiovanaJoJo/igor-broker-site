@@ -109,3 +109,17 @@ NGINX_EOF
 fi
 
 echo "Deploy build OK: $REPO_ROOT/dist"
+
+if [ -f services/insights-bot/.env ]; then
+  sleep 3
+  echo "--- Bot health ---"
+  curl -sf "http://127.0.0.1:8787/health" || echo "health: unavailable"
+  echo ""
+  echo "--- Bot diag ---"
+  curl -sf "http://127.0.0.1:8787/diag" || echo "diag: unavailable"
+  echo ""
+  if command -v pm2 >/dev/null 2>&1; then
+    echo "--- PM2 logs (last 40 lines) ---"
+    pm2 logs igor-insights-bot --lines 40 --nostream 2>/dev/null || true
+  fi
+fi

@@ -1,27 +1,41 @@
 import express from 'express';
 import { botConfigured, env } from './env.js';
 import { createBot } from './bot.js';
+import { collectDiagnostics, getLaunchState, setLaunchState } from './diagnostics.js';
 
 const app = express();
-
 const usePolling = env.usePolling || !env.publicUrl;
 
 app.get('/health', (_req, res) => {
+  const { launchState, launchError } = getLaunchState();
   res.json({
     ok: true,
     bot: botConfigured(),
     mode: usePolling ? 'polling' : 'webhook',
     proxy: Boolean(env.proxyUrl),
+    launchState,
+    launchError,
     sanity: Boolean(env.sanityProjectId && env.sanityWriteToken),
     cursor: Boolean(env.cursorApiKey),
-    webhook: !usePolling && env.publicUrl
-      ? `${env.publicUrl.replace(/\/$/, '')}/webhook/${env.webhookSecret || 'telegram'}`
-      : null,
   });
+});
+
+app.get('/diag', async (_req, res) => {
+  try {
+    const diag = await collectDiagnostics(usePolling ? 'polling' : 'webhook');
+    res.json(diag);
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+  }
 });
 
 if (botConfigured()) {
   const bot = createBot();
+
+  bot.use(async (ctx, next) => {
+    console.log('Update:', ctx.updateType, ctx.from?.id, 'text' in (ctx.message ?? {}) ? (ctx.message as { text?: string }).text : '');
+    return next();
+  });
 
   bot.catch(async (err, ctx) => {
     console.error('Bot handler error:', err);
@@ -35,29 +49,40 @@ if (botConfigured()) {
   if (!usePolling && env.publicUrl) {
     const webhookPath = `/webhook/${env.webhookSecret || 'telegram'}`;
     const webhookUrl = `${env.publicUrl.replace(/\/$/, '')}${webhookPath}`;
-
     app.use(bot.webhookCallback(webhookPath));
 
+    setLaunchState('launching');
     bot.telegram
       .setWebhook(webhookUrl, { drop_pending_updates: true })
       .then(async () => {
         console.log(`Webhook set: ${webhookUrl}`);
-        const info = await bot.telegram.getWebhookInfo();
-        console.log('Webhook info:', JSON.stringify(info));
+        setLaunchState('ok');
       })
       .catch((err) => {
         console.error('Webhook setup failed:', err);
+        setLaunchState('error', err instanceof Error ? err.message : String(err));
       });
   } else {
-    bot.telegram.deleteWebhook({ drop_pending_updates: true }).catch(() => {});
+    setLaunchState('launching');
+
+    bot.telegram
+      .deleteWebhook({ drop_pending_updates: true })
+      .catch((err) => console.warn('deleteWebhook:', err instanceof Error ? err.message : err));
+
+    bot.telegram
+      .getMe()
+      .then((me) => console.log('Telegram getMe OK:', me.username, me.id))
+      .catch((err) => console.error('Telegram getMe FAILED:', err));
 
     bot
-      .launch()
+      .launch({ dropPendingUpdates: true })
       .then(() => {
-        console.log('Bot started in polling mode (proxy:', Boolean(env.proxyUrl), ')');
+        console.log('Bot polling started (proxy:', Boolean(env.proxyUrl), ')');
+        setLaunchState('ok');
       })
       .catch((err) => {
         console.error('Bot launch failed:', err);
+        setLaunchState('error', err instanceof Error ? err.message : String(err));
       });
 
     process.once('SIGINT', () => bot.stop('SIGINT'));
