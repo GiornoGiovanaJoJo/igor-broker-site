@@ -86,7 +86,6 @@ export function createBot(): Telegraf {
     resetSession(userId);
     await ctx.reply(
       'Добро пожаловать в редактор Insights.\n\nВведите PIN для доступа:',
-      { parse_mode: 'Markdown' },
     );
     getSession(userId).step = 'pin';
   });
