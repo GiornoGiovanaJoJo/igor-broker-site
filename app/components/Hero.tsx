@@ -3,6 +3,7 @@ import { Send, ArrowRight } from 'lucide-react';
 import { motion } from 'motion/react';
 import { telegramDmUrl, maxWebOpenUrl, siteConfig } from '../site.config';
 import { useMotionProfile } from '../hooks/useMotionProfile';
+import { OptimizedImage } from './OptimizedImage';
 
 const HERO_PORTRAIT = '/images/hero-portrait.png';
 const HERO_PORTRAIT_WEBP = '/images/hero-portrait.webp';
@@ -14,20 +15,18 @@ function HeroPortrait({ className, compact = false }: { className?: string; comp
     <div
       className={`relative overflow-hidden border border-accent/15 bg-card/50 shadow-[0_24px_80px_rgba(0,0,0,0.5)] ${compact ? 'aspect-[4/5] max-h-[340px] rounded-[22px]' : 'aspect-[4/5] rounded-[28px]'} ${className ?? ''}`}
     >
-      <picture>
-        <source srcSet={HERO_PORTRAIT_WEBP} type="image/webp" />
-        <img
-          src={HERO_PORTRAIT}
-          alt="Игорь — брокер по новостройкам"
-          width={1456}
-          height={2048}
-          className="absolute inset-0 w-full h-full object-cover object-[center_12%]"
-          loading={compact ? 'lazy' : 'eager'}
-          decoding="async"
-          fetchPriority={compact ? 'auto' : 'high'}
-          sizes={compact ? '(max-width: 768px) 85vw' : '(min-width: 1024px) 50vw'}
-        />
-      </picture>
+      <OptimizedImage
+        webpSrc={HERO_PORTRAIT_WEBP}
+        fallbackSrc={HERO_PORTRAIT}
+        alt="Игорь — брокер по новостройкам"
+        width={1456}
+        height={2048}
+        className="absolute inset-0 w-full h-full object-cover object-[center_12%]"
+        loading={compact ? 'lazy' : 'eager'}
+        decoding="async"
+        fetchPriority={compact ? 'auto' : 'high'}
+        sizes={compact ? '(max-width: 768px) 85vw' : '(min-width: 1024px) 50vw'}
+      />
       <div className="absolute inset-0 bg-gradient-to-t from-background via-background/35 to-transparent pointer-events-none" />
     </div>
   );

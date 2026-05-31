@@ -28,14 +28,14 @@ export function CookieBanner() {
 
   return (
     <div
-      className="fixed bottom-0 left-0 right-0 z-[150] p-4 sm:p-6 border-t border-border bg-card/95 backdrop-blur-xl shadow-[0_-8px_40px_rgba(0,0,0,0.45)]"
+      className="fixed bottom-0 left-0 right-0 z-[150] p-4 sm:p-6 border-t border-border bg-card max-md:backdrop-blur-none md:bg-card/95 md:backdrop-blur-xl shadow-[0_-8px_40px_rgba(0,0,0,0.45)]"
       role="dialog"
       aria-label="Согласие на использование файлов cookie"
     >
       <div className="max-w-4xl mx-auto flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-8">
         <p className="text-[13px] sm:text-[14px] text-muted-foreground leading-relaxed flex-1">
           Используем файлы cookie для работы сайта и (при согласии) для анонимной аналитики. Подробнее — в{' '}
-          <Link to="/privacy" className="text-accent hover:underline underline-offset-2">
+          <Link to="/privacy" className="text-accent underline underline-offset-2 hover:text-[#c4a66a]">
             политике конфиденциальности
           </Link>
           .

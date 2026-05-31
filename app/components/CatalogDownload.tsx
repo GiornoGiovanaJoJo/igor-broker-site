@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
 import { Download, X, Copy, Send, CheckCircle2 } from 'lucide-react';
 import { telegramDmUrl } from '../site.config';
+import { OptimizedImage } from './OptimizedImage';
 
 /**
  * После загрузки PDF в public/catalog.pdf установите true —
@@ -9,12 +10,12 @@ import { telegramDmUrl } from '../site.config';
  */
 export const CATALOG_PDF_AVAILABLE = false;
 
-const CATALOG_COVER = '/images/catalog/catalog-cover.png';
+const CATALOG_COVER = { png: '/images/catalog/catalog-cover.png', webp: '/images/catalog/catalog-cover.webp' };
 
 const CATALOG_SCROLL_IMAGES = [
-  { src: '/images/catalog/catalog-scroll-1.png', alt: 'Новостройки Москвы — современный жилой комплекс' },
-  { src: '/images/catalog/catalog-scroll-2.png', alt: 'Москва-Сити — деловой центр' },
-  { src: '/images/catalog/catalog-scroll-3.png', alt: 'Жилой квартал с благоустроенной территорией' },
+  { src: '/images/catalog/catalog-scroll-1.png', webp: '/images/catalog/catalog-scroll-1.webp', alt: 'Новостройки Москвы — современный жилой комплекс' },
+  { src: '/images/catalog/catalog-scroll-2.png', webp: '/images/catalog/catalog-scroll-2.webp', alt: 'Москва-Сити — деловой центр' },
+  { src: '/images/catalog/catalog-scroll-3.png', webp: '/images/catalog/catalog-scroll-3.webp', alt: 'Жилой квартал с благоустроенной территорией' },
 ] as const;
 
 function catalogPdfUrl(): string {
@@ -118,12 +119,14 @@ export function CatalogDownload() {
                   key={item.src}
                   className="relative shrink-0 w-[min(78vw,300px)] sm:w-[320px] aspect-[16/10] snap-start overflow-hidden rounded-sm border border-white/[0.08] shadow-[0_0_0_1px_rgba(184,149,92,0.12),0_20px_50px_rgba(0,0,0,0.45)]"
                 >
-                  <img
-                    src={item.src}
+                  <OptimizedImage
+                    webpSrc={item.webp}
+                    fallbackSrc={item.src}
                     alt={item.alt}
                     className="h-full w-full object-cover object-center"
                     loading="lazy"
                     decoding="async"
+                    sizes="300px"
                   />
                   <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-background/50 via-transparent to-transparent" aria-hidden />
                 </div>
@@ -140,13 +143,13 @@ export function CatalogDownload() {
             >
               <div className="relative rounded-sm p-[2px] premium-shimmer-border shadow-[0_28px_80px_rgba(0,0,0,0.55)]">
                 <div className="aspect-square overflow-hidden rounded-sm bg-card">
-                  <img
-                    src={CATALOG_COVER}
+                  <OptimizedImage
+                    webpSrc={CATALOG_COVER.webp}
+                    fallbackSrc={CATALOG_COVER.png}
                     alt="Каталог недвижимости Москвы"
                     className="h-full w-full object-cover"
-                    loading="eager"
+                    loading="lazy"
                     decoding="async"
-                    fetchPriority="high"
                   />
                 </div>
               </div>
@@ -207,7 +210,7 @@ function CatalogRequestModal({ onClose, catalogUrl }: { onClose: () => void; cat
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/75 backdrop-blur-md"
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/85 max-md:backdrop-blur-none md:backdrop-blur-md"
       role="dialog"
       aria-modal="true"
       aria-labelledby="catalog-modal-title"

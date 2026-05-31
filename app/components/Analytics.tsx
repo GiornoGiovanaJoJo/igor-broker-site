@@ -4,6 +4,7 @@ import { hasAnalyticsConsent } from './CookieBanner';
 declare global {
   interface Window {
     ym?: (id: number, method: string, ...args: unknown[]) => void;
+    clarity?: (...args: unknown[]) => void;
   }
 }
 
@@ -35,12 +36,32 @@ function injectYandexMetrika(counterId: string) {
   head.appendChild(noscript);
 }
 
+function injectMicrosoftClarity(projectId: string) {
+  if (document.querySelector(`script[data-clarity="${projectId}"]`)) return;
+  if (window.clarity) return;
+
+  const head = document.getElementsByTagName('head')[0];
+  const inline = document.createElement('script');
+  inline.type = 'text/javascript';
+  inline.dataset.clarity = projectId;
+  inline.text = `(function(c,l,a,r,i,t,y){
+    c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+    t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+    y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+  })(window, document, "clarity", "script", "${projectId}");`;
+  head.appendChild(inline);
+}
+
 export function Analytics() {
   useEffect(() => {
     const tryLoad = () => {
-      const counterId = import.meta.env.VITE_YANDEX_METRIKA_ID;
-      if (!counterId || !hasAnalyticsConsent()) return;
-      injectYandexMetrika(counterId.trim());
+      if (!hasAnalyticsConsent()) return;
+
+      const metrikaId = import.meta.env.VITE_YANDEX_METRIKA_ID;
+      if (metrikaId) injectYandexMetrika(metrikaId.trim());
+
+      const clarityId = import.meta.env.VITE_CLARITY_ID;
+      if (clarityId) injectMicrosoftClarity(clarityId.trim());
     };
 
     tryLoad();

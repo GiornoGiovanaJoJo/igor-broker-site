@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { Header } from '../Header';
 import { Footer } from '../Footer';
-import { AnimatedBackground } from '../AnimatedBackground';
+import { StaticBackground } from '../StaticBackground';
 
 export function InsightsLayout({
   children,
@@ -16,7 +16,7 @@ export function InsightsLayout({
 }) {
   return (
     <div className="insights-editorial min-h-screen bg-background text-foreground relative">
-      <AnimatedBackground />
+      <StaticBackground />
       <Header />
       <main id="main-content" className="relative z-10 pt-28 pb-24">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
