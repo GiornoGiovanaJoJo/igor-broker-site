@@ -32,7 +32,7 @@ export function LandingPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-background text-foreground relative">
+    <div className="relative min-h-screen text-foreground">
       <SeoHead
         title="Igor Broker — новостройки и ипотека в Москве"
         description="Подбор новостроек и ипотека в Москве и МО: семейная ипотека, рассрочка, расчёты платежей и сопровождение сделки."
@@ -41,6 +41,7 @@ export function LandingPage() {
       <SkipLink />
       <SeoJsonLd />
       <AnimatedBackground />
+      <div className="relative z-[1]">
       <Header />
       <main id="main-content">
         <Hero />
@@ -83,6 +84,7 @@ export function LandingPage() {
           <Footer />
         </React.Suspense>
       </LazySection>
+      </div>
     </div>
   );
 }

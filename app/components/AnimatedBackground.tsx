@@ -15,7 +15,7 @@ export function AnimatedBackground() {
   const vignetteStrength = allowHexCrack ? 0.45 : isMobile ? 0.55 : 0.72;
 
   return (
-    <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
+    <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
       <div className="absolute inset-0 bg-[#060607]" />
 
       <div
