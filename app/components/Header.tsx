@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Phone, Send, Menu, X } from 'lucide-react';
 import { siteConfig, telegramDmUrl, maxWebOpenUrl } from '../site.config';
@@ -21,8 +21,17 @@ export function Header() {
   const isHome = location.pathname === '/';
 
   useEffect(() => {
-    const handleScroll = () => setIsScrolled(window.scrollY > 20);
-    window.addEventListener('scroll', handleScroll);
+    let ticking = false;
+    const handleScroll = () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => {
+        setIsScrolled(window.scrollY > 20);
+        ticking = false;
+      });
+    };
+    handleScroll();
+    window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
@@ -63,7 +72,7 @@ export function Header() {
       <header
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
           isScrolled
-            ? 'bg-background/85 backdrop-blur-xl border-b border-border shadow-[0_8px_32px_rgba(0,0,0,0.45)]'
+            ? 'bg-background/92 max-md:bg-background/98 border-b border-border shadow-[0_8px_32px_rgba(0,0,0,0.45)] md:backdrop-blur-xl'
             : 'bg-transparent border-b border-transparent'
         }`}
       >
@@ -155,14 +164,14 @@ export function Header() {
       {mobileOpen && (
         <>
         <div
-          className="fixed inset-0 z-[55] xl:hidden bg-black/70 backdrop-blur-sm"
+          className="fixed inset-0 z-[55] xl:hidden bg-black/80 max-md:backdrop-blur-none md:backdrop-blur-sm"
           aria-hidden
           onClick={() => setMobileOpen(false)}
           role="presentation"
         />
         <div
           id="mobile-menu"
-          className="fixed inset-0 z-[60] xl:hidden pt-20 pb-8 px-6 bg-background/98 backdrop-blur-xl border-b border-border overflow-y-auto pointer-events-auto"
+          className="fixed inset-0 z-[60] xl:hidden pt-20 pb-8 px-6 bg-background max-md:backdrop-blur-none md:bg-background/98 md:backdrop-blur-xl border-b border-border overflow-y-auto pointer-events-auto"
           role="dialog"
           aria-modal="true"
           aria-label="Мобильная навигация"

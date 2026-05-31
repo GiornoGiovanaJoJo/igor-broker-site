@@ -1,0 +1,28 @@
+/* Mobile / touch performance: disable expensive compositing effects */
+
+@media (max-width: 768px), (pointer: coarse) {
+  .premium-shimmer-border,
+  .premium-drift,
+  .catalog-sway {
+    animation: none !important;
+  }
+
+  .card-shell,
+  header[class*='backdrop-blur'],
+  [class*='backdrop-blur'] {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  .perf-hide-blur-orbs {
+    display: none !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .premium-shimmer-border,
+  .premium-drift,
+  .catalog-sway {
+    animation: none !important;
+  }
+}

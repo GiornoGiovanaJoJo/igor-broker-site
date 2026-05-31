@@ -1,4 +1,5 @@
 import React from 'react';
+import '../../styles/fonts-insights.css';
 import { InsightsLayout, InsightsPageHeader } from '../components/insights/InsightsLayout';
 import { InsightFeed } from '../components/insights/InsightFeed';
 import { SeoHead } from '../components/SeoHead';

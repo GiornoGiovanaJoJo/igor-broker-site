@@ -142,12 +142,9 @@ export async function fetchInsightPosts(options: {
   category?: InsightCategory | null;
 }): Promise<{ posts: InsightPost[]; hasMore: boolean; nextCursor: string | null }> {
   const limit = options.limit ?? PAGE_SIZE;
-  const started = performance.now();
-  let source: 'sanity' | 'snapshot' | 'seed' = 'seed';
 
   if (useBrowserSanity()) {
     try {
-      source = 'sanity';
       const client = await getSanityClient();
       const cursorDate = options.cursor ? new Date(options.cursor).toISOString() : null;
       const categoryFilter = options.category ? `&& category == "${options.category}"` : '';
@@ -164,9 +161,6 @@ export async function fetchInsightPosts(options: {
       const hasMore = docs.length > limit;
       const slice = docs.slice(0, limit).map(mapSanityDoc);
       const nextCursor = hasMore && slice.length ? slice[slice.length - 1].publishedAt : null;
-      // #region agent log
-      fetch('http://127.0.0.1:7850/ingest/507d7032-611b-42c7-bbda-f8575b40d7ea',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2376ae'},body:JSON.stringify({sessionId:'2376ae',location:'api.ts:fetchInsightPosts',message:'fetch done',data:{source,ms:Math.round(performance.now()-started),count:slice.length},timestamp:Date.now(),hypothesisId:'A',runId:'perf-fix'})}).catch(()=>{});
-      // #endregion
       return { posts: slice, hasMore, nextCursor };
     } catch {
       // fall through to snapshot/seed
@@ -174,23 +168,13 @@ export async function fetchInsightPosts(options: {
   }
 
   try {
-    source = 'snapshot';
     const snapshot = await loadSnapshotPosts();
-    const result = paginatePosts(snapshot, options);
-    // #region agent log
-    fetch('http://127.0.0.1:7850/ingest/507d7032-611b-42c7-bbda-f8575b40d7ea',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2376ae'},body:JSON.stringify({sessionId:'2376ae',location:'api.ts:fetchInsightPosts',message:'fetch done',data:{source,ms:Math.round(performance.now()-started),count:result.posts.length},timestamp:Date.now(),hypothesisId:'B',runId:'perf-fix'})}).catch(()=>{});
-    // #endregion
-    return result;
+    return paginatePosts(snapshot, options);
   } catch {
     // fall through to seed
   }
 
-  source = 'seed';
-  const result = paginatePosts(await loadSeedPosts(), options);
-  // #region agent log
-  fetch('http://127.0.0.1:7850/ingest/507d7032-611b-42c7-bbda-f8575b40d7ea',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2376ae'},body:JSON.stringify({sessionId:'2376ae',location:'api.ts:fetchInsightPosts',message:'fetch done',data:{source,ms:Math.round(performance.now()-started),count:result.posts.length},timestamp:Date.now(),hypothesisId:'B',runId:'perf-fix'})}).catch(()=>{});
-  // #endregion
-  return result;
+  return paginatePosts(await loadSeedPosts(), options);
 }
 
 export async function fetchInsightBySlug(slug: string): Promise<InsightPost | null> {

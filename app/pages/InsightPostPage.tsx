@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import '../../styles/fonts-insights.css';
 import { useParams, Link } from 'react-router-dom';
 import { Calendar, Clock, Send, Copy, Check } from 'lucide-react';
 import { InsightsLayout } from '../components/insights/InsightsLayout';

@@ -2,13 +2,40 @@ import React from 'react';
 import { Send, ArrowRight } from 'lucide-react';
 import { motion } from 'motion/react';
 import { telegramDmUrl, maxWebOpenUrl, siteConfig } from '../site.config';
+import { useMotionProfile } from '../hooks/useMotionProfile';
 
 const HERO_PORTRAIT = '/images/hero-portrait.png';
 const HERO_PORTRAIT_WEBP = '/images/hero-portrait.webp';
 
 const TASK_CHIPS = ['Личное проживание', 'Инвест', 'Улучшение актива', 'Пассивный поток'] as const;
 
+function HeroPortrait({ className, compact = false }: { className?: string; compact?: boolean }) {
+  return (
+    <div
+      className={`relative overflow-hidden border border-accent/15 bg-card/50 shadow-[0_24px_80px_rgba(0,0,0,0.5)] ${compact ? 'aspect-[4/5] max-h-[340px] rounded-[22px]' : 'aspect-[4/5] rounded-[28px]'} ${className ?? ''}`}
+    >
+      <picture>
+        <source srcSet={HERO_PORTRAIT_WEBP} type="image/webp" />
+        <img
+          src={HERO_PORTRAIT}
+          alt="Игорь — брокер по новостройкам"
+          width={1456}
+          height={2048}
+          className="absolute inset-0 w-full h-full object-cover object-[center_12%]"
+          loading={compact ? 'lazy' : 'eager'}
+          decoding="async"
+          fetchPriority={compact ? 'auto' : 'high'}
+          sizes={compact ? '(max-width: 768px) 85vw' : '(min-width: 1024px) 50vw'}
+        />
+      </picture>
+      <div className="absolute inset-0 bg-gradient-to-t from-background via-background/35 to-transparent pointer-events-none" />
+    </div>
+  );
+}
+
 export function Hero() {
+  const { reduceMotion } = useMotionProfile();
+
   const scrollToForm = () => {
     const element = document.getElementById('lead-form');
     if (element) {
@@ -28,18 +55,17 @@ export function Hero() {
     { kind: 'num' as const, value: '0%', label: 'комиссия клиента' },
   ];
 
+  const fadeUp = reduceMotion
+    ? {}
+    : { initial: { opacity: 0, y: 20 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1] as const } };
+
   return (
-    <section className="relative pt-32 pb-20 px-4 sm:px-6 lg:px-8 overflow-hidden">
+    <section className="relative pt-28 sm:pt-32 pb-16 sm:pb-20 px-4 sm:px-6 lg:px-8 overflow-hidden">
       <div className="max-w-7xl mx-auto">
-        <div className="grid lg:grid-cols-2 gap-12 items-center">
-          <motion.div
-            className="space-y-8"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-          >
-            <div className="space-y-6">
-              <h1 className="text-[42px] sm:text-[54px] lg:text-[64px] leading-[1.08] tracking-tight text-primary font-semibold">
+        <div className="grid lg:grid-cols-2 gap-10 lg:gap-12 items-center">
+          <motion.div className="space-y-7 sm:space-y-8" {...fadeUp}>
+            <div className="space-y-5 sm:space-y-6">
+              <h1 className="text-[38px] sm:text-[54px] lg:text-[64px] leading-[1.08] tracking-tight text-primary font-semibold">
                 Новостройка{' '}
                 <span className="relative inline-block">
                   <span className="relative z-10 text-accent">под вашу задачу</span>
@@ -47,22 +73,26 @@ export function Hero() {
                 </span>
               </h1>
 
+              <div className="lg:hidden mx-auto w-full max-w-[300px]">
+                <HeroPortrait compact />
+              </div>
+
               <div className="flex flex-wrap gap-2 max-w-xl">
                 {TASK_CHIPS.map((label) => (
                   <span
                     key={label}
-                    className="inline-flex items-center px-3 py-1.5 rounded-full text-[13px] sm:text-[14px] border border-border bg-card/50 text-foreground/90"
+                    className="inline-flex items-center px-3 py-1.5 rounded-full text-[13px] sm:text-[14px] border border-border bg-card/80 text-foreground/90"
                   >
                     {label}
                   </span>
                 ))}
               </div>
 
-              <div className="space-y-4 max-w-xl text-[18px] sm:text-[19px] text-muted-foreground leading-relaxed font-light">
+              <div className="space-y-4 max-w-xl text-[17px] sm:text-[19px] text-muted-foreground leading-relaxed font-light">
                 <p>
                   Конфиденциальный подбор и консультация по стратегии выбора.
-                  <br />
-                  Без лишних визитов в офисы продаж.
+                  <br className="hidden sm:block" />
+                  <span className="sm:ml-0"> Без лишних визитов в офисы продаж.</span>
                 </p>
                 <p>
                   Как использовать{' '}
@@ -78,45 +108,36 @@ export function Hero() {
             </div>
 
             <div className="flex flex-col sm:flex-row flex-wrap gap-3">
-              <motion.button
+              <button
+                type="button"
                 onClick={scrollToForm}
-                className="group inline-flex items-center justify-center gap-2 px-8 py-4 rounded-2xl bg-accent text-accent-foreground hover:bg-[#c4a66a] transition-all duration-300 border border-accent/30 shadow-[0_8px_32px_rgba(184,149,92,0.2)]"
-                whileHover={{ scale: 1.01 }}
-                whileTap={{ scale: 0.99 }}
+                className="group inline-flex items-center justify-center gap-2 px-8 py-4 rounded-2xl bg-accent text-accent-foreground hover:bg-[#c4a66a] transition-colors duration-300 border border-accent/30 shadow-[0_8px_32px_rgba(184,149,92,0.2)] active:scale-[0.99]"
               >
-                <span className="relative z-10 font-medium tracking-wide">Запросить разбор</span>
-                <ArrowRight className="relative z-10 w-5 h-5 group-hover:translate-x-0.5 transition-transform duration-300" />
-              </motion.button>
-              <motion.button
+                <span className="font-medium tracking-wide">Запросить разбор</span>
+                <ArrowRight className="w-5 h-5 group-hover:translate-x-0.5 transition-transform duration-300" />
+              </button>
+              <button
                 type="button"
                 onClick={() => window.open(telegramDmUrl(), '_blank')}
-                className="inline-flex items-center justify-center gap-2 px-6 py-4 rounded-2xl border border-border bg-card/40 hover:bg-card/70 hover:border-accent/30 text-primary transition-all duration-300"
-                whileHover={{ scale: 1.01 }}
-                whileTap={{ scale: 0.99 }}
+                className="inline-flex items-center justify-center gap-2 px-6 py-4 rounded-2xl border border-border bg-card/70 hover:bg-card hover:border-accent/30 text-primary transition-colors duration-300 active:scale-[0.99]"
               >
                 <Send className="w-5 h-5 text-accent/90" />
                 <span className="font-medium tracking-wide">Telegram</span>
-              </motion.button>
+              </button>
               <a
                 href={maxWebOpenUrl()}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center justify-center gap-2 px-6 py-4 rounded-2xl border border-border bg-card/40 hover:bg-card/70 hover:border-accent/30 text-primary transition-all duration-300 hover:scale-[1.01] active:scale-[0.99]"
+                className="inline-flex items-center justify-center gap-2 px-6 py-4 rounded-2xl border border-border bg-card/70 hover:bg-card hover:border-accent/30 text-primary transition-colors duration-300 active:scale-[0.99]"
               >
                 <span className="font-semibold tracking-wide text-accent/95">MAX</span>
                 <span className="text-[13px] text-muted-foreground whitespace-nowrap">{siteConfig.maxPhoneTel}</span>
               </a>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-8 pt-2 max-w-4xl">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-5 gap-y-7 pt-1 max-w-4xl">
               {heroStats.map((stat, i) => (
-                <motion.div
-                  key={i}
-                  className="flex flex-col"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.55, delay: 0.65 + i * 0.05 }}
-                >
+                <div key={i} className="flex flex-col">
                   {stat.kind === 'era' ? (
                     <>
                       <span className="text-[11px] sm:text-[12px] text-muted-foreground font-medium tracking-wide uppercase leading-snug">
@@ -132,47 +153,28 @@ export function Hero() {
                       <span className="text-[11px] text-muted-foreground font-medium tracking-wide uppercase mt-2">{stat.label}</span>
                     </>
                   )}
-                </motion.div>
+                </div>
               ))}
             </div>
           </motion.div>
 
           <motion.div
-            className="relative"
-            initial={{ opacity: 0, scale: 0.98 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.85, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
+            className="relative hidden lg:block"
+            {...(reduceMotion
+              ? {}
+              : {
+                  initial: { opacity: 0, scale: 0.98 },
+                  animate: { opacity: 1, scale: 1 },
+                  transition: { duration: 0.85, delay: 0.15, ease: [0.22, 1, 0.36, 1] as const },
+                })}
           >
-            <div className="relative aspect-[4/5] rounded-[28px] overflow-hidden border border-accent/15 bg-card/50 shadow-[0_24px_80px_rgba(0,0,0,0.5)]">
-              <picture>
-                <source srcSet={HERO_PORTRAIT_WEBP} type="image/webp" />
-                <img
-                  src={HERO_PORTRAIT}
-                  alt="Игорь — брокер по новостройкам"
-                  width={1456}
-                  height={2048}
-                  className="absolute inset-0 w-full h-full object-cover object-[center_12%]"
-                  loading="eager"
-                  decoding="async"
-                  fetchPriority="high"
-                />
-              </picture>
-              <div className="absolute inset-0 bg-gradient-to-t from-background via-background/35 to-transparent pointer-events-none" />
-              <motion.div
-                className="absolute inset-0 pointer-events-none mix-blend-soft-light opacity-40"
-                animate={{
-                  background: [
-                    'linear-gradient(145deg, rgba(184,149,92,0.12) 0%, transparent 55%)',
-                    'linear-gradient(215deg, transparent 0%, rgba(184,149,92,0.08) 50%)',
-                    'linear-gradient(145deg, rgba(184,149,92,0.12) 0%, transparent 55%)',
-                  ],
-                }}
-                transition={{ duration: 14, repeat: Infinity, ease: 'easeInOut' }}
-              />
-            </div>
-
-            <div className="absolute -top-4 -right-4 w-28 h-28 bg-accent/6 rounded-full blur-3xl -z-10" />
-            <div className="absolute -bottom-4 -left-4 w-36 h-36 bg-muted rounded-full blur-3xl -z-10 opacity-80" />
+            <HeroPortrait />
+            {!reduceMotion && (
+              <>
+                <div className="absolute -top-4 -right-4 w-28 h-28 bg-accent/6 rounded-full blur-3xl -z-10 perf-hide-blur-orbs" />
+                <div className="absolute -bottom-4 -left-4 w-36 h-36 bg-muted rounded-full blur-3xl -z-10 opacity-80 perf-hide-blur-orbs" />
+              </>
+            )}
           </motion.div>
         </div>
       </div>
