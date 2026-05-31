@@ -1,7 +1,8 @@
-import { Agent } from '@cursor/sdk';
 import { cursorConfigured, env } from './env.js';
 import type { DraftBlock } from './format.js';
 import { normalizeLineBreaks, parseBodyToBlocks } from './format.js';
+
+const CURSOR_TIMEOUT_MS = 90_000;
 
 const SYSTEM_PROMPT = `Ты редактор премиальной ленты недвижимости Igor Broker.
 Преобразуй текст в JSON-массив structured blocks для editorial feed.
@@ -67,6 +68,30 @@ function dedupeTitleHeading(blocks: DraftBlock[], title: string): DraftBlock[] {
   return blocks;
 }
 
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(`Cursor timeout (${ms}ms)`)), ms);
+    promise
+      .then((value) => {
+        clearTimeout(timer);
+        resolve(value);
+      })
+      .catch((err) => {
+        clearTimeout(timer);
+        reject(err);
+      });
+  });
+}
+
+async function promptCursorAgent(userPrompt: string): Promise<string> {
+  const { Agent } = await import('@cursor/sdk');
+  const result = await Agent.prompt(`${SYSTEM_PROMPT}\n\n${userPrompt}`, {
+    apiKey: env.cursorApiKey,
+    model: { id: 'composer-2.5' },
+  });
+  return typeof result.result === 'string' ? result.result : JSON.stringify(result.result);
+}
+
 export async function improveTextWithCursor(input: {
   title: string;
   excerpt: string;
@@ -84,15 +109,13 @@ ${normalizeLineBreaks(input.body)}
 
 Верни JSON-массив blocks.`;
 
-  const result = await Agent.prompt(`${SYSTEM_PROMPT}\n\n${userPrompt}`, {
-    apiKey: env.cursorApiKey,
-    model: { id: 'composer-2.5' },
-  });
+  try {
+    const output = await withTimeout(promptCursorAgent(userPrompt), CURSOR_TIMEOUT_MS);
+    const blocks = extractJsonArray(output);
+    if (blocks?.length) return dedupeTitleHeading(blocks, input.title);
+  } catch (err) {
+    console.warn('Cursor formatting failed, using local parser:', err instanceof Error ? err.message : err);
+  }
 
-  const output = typeof result.result === 'string' ? result.result : JSON.stringify(result.result);
-  const blocks = extractJsonArray(output);
-  if (blocks?.length) return dedupeTitleHeading(blocks, input.title);
-
-  // Fallback: local parser if Cursor returns prose instead of JSON
   return dedupeTitleHeading(parseBodyToBlocks(input.body), input.title);
 }

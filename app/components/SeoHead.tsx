@@ -1,6 +1,6 @@
 import React from 'react';
 import { Helmet } from 'react-helmet-async';
-import { absoluteSiteUrl } from '../site.config';
+import { absoluteSiteUrl, siteConfig } from '../site.config';
 
 export type SeoHeadProps = {
   title: string;
@@ -22,7 +22,7 @@ export function SeoHead({
   noindex = false,
 }: SeoHeadProps) {
   const url = absoluteSiteUrl(path);
-  const ogImage = image || absoluteSiteUrl('/favicon.svg');
+  const ogImage = image || absoluteSiteUrl(siteConfig.defaultOgImagePath);
 
   return (
     <Helmet>

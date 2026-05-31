@@ -307,7 +307,7 @@ export function createBot(): Telegraf {
       }
     }
 
-    const { id, slug } = await publishDraft(
+    const { id, slug, snapshotWarning } = await publishDraft(
       session.draft,
       coverBuffer,
       coverFilename,
@@ -318,7 +318,12 @@ export function createBot(): Telegraf {
     session.step = 'idle';
 
     const status = publish ? 'Опубликовано' : 'Сохранено как черновик';
-    await ctx.reply(`${status} ✅\n\nID: \`${id}\`\nSlug: \`${slug}\``, {
+    const siteNote = publish
+      ? snapshotWarning
+        ? `\n\n⚠️ Пост в Sanity, но лента на сайте не обновилась:\n\`${snapshotWarning}\``
+        : '\n\nЛента на сайте обновлена.'
+      : '\n\nЧерновик без даты публикации — на сайте не появится. Нажмите «Опубликовать».';
+    await ctx.reply(`${status} ✅\n\nID: \`${id}\`\nSlug: \`${slug}\`${siteNote}`, {
       parse_mode: 'Markdown',
       ...mainMenuKeyboard(),
     });
@@ -329,6 +334,7 @@ export function createBot(): Telegraf {
     try {
       await handlePublish(ctx, true);
     } catch (err) {
+      console.error('Publish failed:', err);
       await ctx.reply(`Ошибка публикации: ${err instanceof Error ? err.message : 'unknown'}`);
     }
   });
@@ -338,6 +344,7 @@ export function createBot(): Telegraf {
     try {
       await handlePublish(ctx, false);
     } catch (err) {
+      console.error('Draft save failed:', err);
       await ctx.reply(`Ошибка сохранения: ${err instanceof Error ? err.message : 'unknown'}`);
     }
   });

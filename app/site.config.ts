@@ -19,6 +19,9 @@ export const siteConfig = {
   /** Полный URL сайта для SEO (production). В dev можно не задавать. */
   siteUrl: import.meta.env.VITE_SITE_URL?.replace(/\/$/, '') ?? '',
 
+  /** Default Open Graph image (1200×630 recommended; hero portrait works for social previews). */
+  defaultOgImagePath: '/images/hero-portrait.webp',
+
   city: 'Москва',
   region: 'Москва и МО',
 } as const;

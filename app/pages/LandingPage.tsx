@@ -7,6 +7,7 @@ import { WhyMe } from '../components/WhyMe';
 import { HowItWorks } from '../components/HowItWorks';
 import { SkipLink } from '../components/SkipLink';
 import { SeoJsonLd } from '../components/SeoJsonLd';
+import { SeoHead } from '../components/SeoHead';
 import { LazySection } from '../components/LazySection';
 
 const CatalogDownload = lazy(() => import('../components/CatalogDownload').then((m) => ({ default: m.CatalogDownload })));
@@ -32,6 +33,11 @@ export function LandingPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground relative">
+      <SeoHead
+        title="Igor Broker — новостройки и ипотека в Москве"
+        description="Подбор новостроек и ипотека в Москве и МО: семейная ипотека, рассрочка, расчёты платежей и сопровождение сделки."
+        path="/"
+      />
       <SkipLink />
       <SeoJsonLd />
       <AnimatedBackground />
