@@ -116,7 +116,7 @@ export function InsightPostPage() {
           ]}
         />
 
-        <header className="mb-10 text-center">
+        <header className="mb-10 text-center readable-over-bg">
           <span
             className={`mb-5 inline-block rounded-full border px-3 py-1 text-[11px] font-medium tracking-wide ${categoryStyle.badge}`}
           >
