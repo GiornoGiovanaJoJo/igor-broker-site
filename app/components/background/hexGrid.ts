@@ -71,7 +71,7 @@ export function findCellsNearPoint(
   return result;
 }
 
-export function hasActiveCells(cells: HexCell[], threshold = 0.008): boolean {
+export function hasActiveCells(cells: HexCell[], threshold = 0.015): boolean {
   for (const cell of cells) {
     if (cell.intensity > threshold) return true;
   }

@@ -17,14 +17,32 @@ const REDUCE_QUERY = '(prefers-reduced-motion: reduce)';
 const COARSE_QUERY = '(pointer: coarse)';
 const HEX_CRACK_QUERY = '(min-width: 1024px) and (pointer: fine)';
 
+function readProfile(): MotionProfile {
+  if (typeof window === 'undefined') {
+    return {
+      reduceMotion: false,
+      isMobile: false,
+      allowHexCrack: false,
+      allowHeavyEffects: false,
+      allowContentMotion: true,
+    };
+  }
+
+  const isMobile = window.matchMedia(MOBILE_QUERY).matches || window.matchMedia(COARSE_QUERY).matches;
+  const reduceMotion = window.matchMedia(REDUCE_QUERY).matches;
+  const allowHexCrack = window.matchMedia(HEX_CRACK_QUERY).matches && !reduceMotion;
+
+  return {
+    isMobile,
+    reduceMotion,
+    allowHexCrack,
+    allowHeavyEffects: allowHexCrack,
+    allowContentMotion: !reduceMotion,
+  };
+}
+
 export function useMotionProfile(): MotionProfile {
-  const [profile, setProfile] = useState<MotionProfile>(() => ({
-    reduceMotion: false,
-    isMobile: false,
-    allowHexCrack: false,
-    allowHeavyEffects: false,
-    allowContentMotion: true,
-  }));
+  const [profile, setProfile] = useState<MotionProfile>(readProfile);
 
   useEffect(() => {
     const mobileMq = window.matchMedia(MOBILE_QUERY);
@@ -32,18 +50,7 @@ export function useMotionProfile(): MotionProfile {
     const coarseMq = window.matchMedia(COARSE_QUERY);
     const hexMq = window.matchMedia(HEX_CRACK_QUERY);
 
-    const update = () => {
-      const isMobile = mobileMq.matches || coarseMq.matches;
-      const reduceMotion = reduceMq.matches;
-      const allowHexCrack = hexMq.matches && !reduceMotion;
-      setProfile({
-        isMobile,
-        reduceMotion,
-        allowHexCrack,
-        allowHeavyEffects: allowHexCrack,
-        allowContentMotion: !reduceMotion,
-      });
-    };
+    const update = () => setProfile(readProfile());
 
     update();
     mobileMq.addEventListener('change', update);

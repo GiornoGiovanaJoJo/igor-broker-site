@@ -12,7 +12,7 @@ const noiseSvg =
 export function AnimatedBackground() {
   const { allowHexCrack, isMobile, reduceMotion } = useMotionProfile();
 
-  const vignetteStrength = allowHexCrack ? 0.6 : isMobile ? 0.55 : 0.72;
+  const vignetteStrength = allowHexCrack ? 0.45 : isMobile ? 0.55 : 0.72;
 
   return (
     <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
@@ -28,12 +28,6 @@ export function AnimatedBackground() {
 
       {isMobile && !reduceMotion && <MobileAmbientBackground />}
 
-      {allowHexCrack && (
-        <Suspense fallback={null}>
-          <HexCrackCanvas />
-        </Suspense>
-      )}
-
       {!reduceMotion && (
         <div
           className="absolute inset-0 opacity-[0.035] mix-blend-overlay max-md:opacity-[0.02] max-md:mix-blend-normal"
@@ -46,6 +40,13 @@ export function AnimatedBackground() {
         className="absolute inset-0"
         style={{ boxShadow: `inset 0 0 140px rgba(0,0,0,${vignetteStrength})` }}
       />
+
+      {/* Hex canvas above vignette so cracks stay visible */}
+      {allowHexCrack && (
+        <Suspense fallback={null}>
+          <HexCrackCanvas />
+        </Suspense>
+      )}
     </div>
   );
 }

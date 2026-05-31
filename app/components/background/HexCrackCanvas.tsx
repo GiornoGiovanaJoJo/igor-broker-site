@@ -17,7 +17,7 @@ import {
   type HexCell,
 } from './hexGrid';
 
-function strokeHex(ctx: CanvasRenderingContext2D, cell: HexCell) {
+function strokeHexPath(ctx: CanvasRenderingContext2D, cell: HexCell) {
   const [first, ...rest] = cell.vertices;
   ctx.beginPath();
   ctx.moveTo(first[0], first[1]);
@@ -27,66 +27,61 @@ function strokeHex(ctx: CanvasRenderingContext2D, cell: HexCell) {
   ctx.closePath();
 }
 
-function drawCell(ctx: CanvasRenderingContext2D, cell: HexCell, dpr: number) {
-  const intensity = cell.intensity;
-
-  if (intensity <= 0) {
-    ctx.strokeStyle = `rgba(184, 149, 92, ${BASE_GRID_ALPHA})`;
-    ctx.lineWidth = 0.5 * dpr;
-    ctx.shadowBlur = 0;
-    strokeHex(ctx, cell);
-    ctx.stroke();
-    return;
-  }
-
-  const alpha = Math.min(1, intensity);
-  const glow = 6 + intensity * 10;
-
+function drawIdleCell(ctx: CanvasRenderingContext2D, cell: HexCell) {
   ctx.save();
-  ctx.shadowBlur = glow * dpr;
-  ctx.shadowColor = `rgba(212, 188, 132, ${alpha * 0.65})`;
-
-  const fillGrad = ctx.createRadialGradient(cell.cx, cell.cy, 0, cell.cx, cell.cy, 36 * dpr);
-  fillGrad.addColorStop(0, `rgba(244, 241, 234, ${alpha * 0.18})`);
-  fillGrad.addColorStop(0.45, `rgba(212, 188, 132, ${alpha * 0.12})`);
-  fillGrad.addColorStop(1, 'rgba(184, 149, 92, 0)');
-
-  strokeHex(ctx, cell);
-  ctx.fillStyle = fillGrad;
-  ctx.fill();
-
-  const edgeGrad = ctx.createLinearGradient(
-    cell.cx - 20,
-    cell.cy - 20,
-    cell.cx + 20,
-    cell.cy + 20,
-  );
-  edgeGrad.addColorStop(0, CRACK_GOLD);
-  edgeGrad.addColorStop(0.5, CRACK_GOLD_LIGHT);
-  edgeGrad.addColorStop(1, CRACK_WARM);
-
-  ctx.strokeStyle = edgeGrad;
-  ctx.globalAlpha = alpha * 0.85;
-  ctx.lineWidth = (0.8 + intensity * 1.2) * dpr;
-  strokeHex(ctx, cell);
+  ctx.strokeStyle = `rgba(184, 149, 92, ${BASE_GRID_ALPHA})`;
+  ctx.lineWidth = 0.75;
+  strokeHexPath(ctx, cell);
   ctx.stroke();
   ctx.restore();
 }
 
-function renderFrame(
-  ctx: CanvasRenderingContext2D,
-  cells: HexCell[],
-  width: number,
-  height: number,
-  dpr: number,
-) {
-  ctx.clearRect(0, 0, width, height);
+function drawCrackedCell(ctx: CanvasRenderingContext2D, cell: HexCell) {
+  const intensity = Math.min(1, cell.intensity);
+  const glow = 12 + intensity * 22;
+
+  ctx.save();
+
+  // Light leaking through the crack
+  const fillGrad = ctx.createRadialGradient(cell.cx, cell.cy, 0, cell.cx, cell.cy, 42);
+  fillGrad.addColorStop(0, `rgba(244, 241, 234, ${intensity * 0.35})`);
+  fillGrad.addColorStop(0.35, `rgba(212, 188, 132, ${intensity * 0.22})`);
+  fillGrad.addColorStop(0.7, `rgba(184, 149, 92, ${intensity * 0.08})`);
+  fillGrad.addColorStop(1, 'rgba(184, 149, 92, 0)');
+
+  strokeHexPath(ctx, cell);
+  ctx.fillStyle = fillGrad;
+  ctx.fill();
+
+  ctx.shadowBlur = glow;
+  ctx.shadowColor = `rgba(212, 188, 132, ${intensity * 0.85})`;
+
+  const edgeGrad = ctx.createLinearGradient(
+    cell.cx - 28,
+    cell.cy - 28,
+    cell.cx + 28,
+    cell.cy + 28,
+  );
+  edgeGrad.addColorStop(0, CRACK_GOLD);
+  edgeGrad.addColorStop(0.45, CRACK_GOLD_LIGHT);
+  edgeGrad.addColorStop(1, CRACK_WARM);
+
+  ctx.strokeStyle = edgeGrad;
+  ctx.globalAlpha = 0.55 + intensity * 0.45;
+  ctx.lineWidth = 1.1 + intensity * 1.6;
+  strokeHexPath(ctx, cell);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function renderFrame(ctx: CanvasRenderingContext2D, cells: HexCell[], w: number, h: number) {
+  ctx.clearRect(0, 0, w, h);
 
   for (const cell of cells) {
-    if (cell.intensity <= 0) drawCell(ctx, cell, dpr);
+    if (cell.intensity <= 0) drawIdleCell(ctx, cell);
   }
   for (const cell of cells) {
-    if (cell.intensity > 0) drawCell(ctx, cell, dpr);
+    if (cell.intensity > 0) drawCrackedCell(ctx, cell);
   }
 }
 
@@ -96,7 +91,7 @@ export function HexCrackCanvas() {
   const mouseRef = useRef({ x: -9999, y: -9999, dirty: false });
   const rafRef = useRef(0);
   const runningRef = useRef(false);
-  const dprRef = useRef(1);
+  const sizeRef = useRef({ w: 0, h: 0, dpr: 1 });
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -109,16 +104,16 @@ export function HexCrackCanvas() {
 
     const resize = () => {
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      dprRef.current = dpr;
       const w = window.innerWidth;
       const h = window.innerHeight;
-      canvas.width = w * dpr;
-      canvas.height = h * dpr;
+      sizeRef.current = { w, h, dpr };
+      canvas.width = Math.floor(w * dpr);
+      canvas.height = Math.floor(h * dpr);
       canvas.style.width = `${w}px`;
       canvas.style.height = `${h}px`;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      cellsRef.current = buildHexGrid(w, h);
-      renderFrame(ctx, cellsRef.current, w * dpr, h * dpr, dpr);
+      cellsRef.current = buildHexGrid(w, h, 34);
+      renderFrame(ctx, cellsRef.current, w, h);
     };
 
     const scheduleResize = () => {
@@ -133,7 +128,8 @@ export function HexCrackCanvas() {
         if (count >= MAX_ACTIVE_CELLS) break;
         const dist = Math.hypot(cell.cx - px, cell.cy - py);
         const falloff = 1 - dist / CRACK_RADIUS;
-        cell.intensity = Math.min(1, cell.intensity + CRACK_IMPULSE * falloff);
+        if (falloff <= 0) continue;
+        cell.intensity = Math.min(1, cell.intensity + CRACK_IMPULSE * falloff * falloff);
         count++;
       }
     };
@@ -145,6 +141,7 @@ export function HexCrackCanvas() {
         return;
       }
 
+      const { w, h } = sizeRef.current;
       const cells = cellsRef.current;
       const mouse = mouseRef.current;
 
@@ -154,12 +151,9 @@ export function HexCrackCanvas() {
       }
 
       decayCells(cells, CRACK_DECAY);
+      renderFrame(ctx, cells, w, h);
 
-      const w = window.innerWidth;
-      const h = window.innerHeight;
-      renderFrame(ctx, cells, w * dprRef.current, h * dprRef.current, dprRef.current);
-
-      if (hasActiveCells(cells) || mouseRef.current.dirty) {
+      if (hasActiveCells(cells, 0.015) || mouseRef.current.dirty) {
         rafRef.current = requestAnimationFrame(tick);
       } else {
         runningRef.current = false;
@@ -178,12 +172,13 @@ export function HexCrackCanvas() {
     };
 
     const onVisibility = () => {
-      if (document.visibilityState === 'visible' && hasActiveCells(cellsRef.current)) {
+      if (document.visibilityState === 'visible') {
         startLoop();
       }
     };
 
     resize();
+    startLoop();
     window.addEventListener('mousemove', onMouseMove, { passive: true });
     window.addEventListener('resize', scheduleResize, { passive: true });
     document.addEventListener('visibilitychange', onVisibility);
@@ -204,7 +199,7 @@ export function HexCrackCanvas() {
   return (
     <canvas
       ref={canvasRef}
-      className="absolute inset-0 h-full w-full"
+      className="absolute inset-0 z-[1] h-full w-full"
       aria-hidden
     />
   );
