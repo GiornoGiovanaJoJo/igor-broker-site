@@ -34,7 +34,16 @@ export function CookieBanner() {
     >
       <div className="max-w-4xl mx-auto flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-8">
         <p className="text-[13px] sm:text-[14px] text-muted-foreground leading-relaxed flex-1">
-          Используем файлы cookie для работы сайта и (при согласии) для анонимной аналитики. Подробнее — в{' '}
+          Используем cookie для работы сайта. Статистика посещений — через{' '}
+          <a
+            href="https://yandex.ru/legal/metrica_termsofuse/"
+            className="text-accent underline underline-offset-2 hover:text-[#c4a66a]"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Яндекс.Метрику
+          </a>{' '}
+          (обезличенно). Подробнее — в{' '}
           <Link to="/privacy" className="text-accent underline underline-offset-2 hover:text-[#c4a66a]">
             политике конфиденциальности
           </Link>
@@ -43,17 +52,10 @@ export function CookieBanner() {
         <div className="flex flex-col xs:flex-row gap-2 shrink-0">
           <button
             type="button"
-            onClick={() => choose(false)}
-            className="px-4 py-2.5 rounded-sm border border-border text-[13px] font-medium text-foreground/90 hover:bg-muted transition-colors"
-          >
-            Только необходимые
-          </button>
-          <button
-            type="button"
             onClick={() => choose(true)}
             className="px-4 py-2.5 rounded-sm bg-accent text-accent-foreground text-[13px] font-semibold hover:bg-[#c4a66a] transition-colors border border-accent/35"
           >
-            Принять все
+            Понятно
           </button>
         </div>
       </div>

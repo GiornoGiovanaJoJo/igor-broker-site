@@ -5,7 +5,7 @@ import { PrivacyPage } from './pages/PrivacyPage';
 import { TermsPage } from './pages/TermsPage';
 import { WorkPage } from './pages/WorkPage';
 import { CookieBanner } from './components/CookieBanner';
-import { Analytics } from './components/Analytics';
+import { MetrikaTracker } from './components/MetrikaTracker';
 
 const InsightsPage = lazy(() => import('./pages/InsightsPage').then((m) => ({ default: m.InsightsPage })));
 const InsightPostPage = lazy(() => import('./pages/InsightPostPage').then((m) => ({ default: m.InsightPostPage })));
@@ -44,7 +44,7 @@ export default function App() {
         <Route path="/work" element={<WorkPage />} />
       </Routes>
       <CookieBanner />
-      <Analytics />
+      <MetrikaTracker />
     </>
   );
 }

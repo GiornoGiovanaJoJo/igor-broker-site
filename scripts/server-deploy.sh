@@ -130,6 +130,16 @@ server {
         default_type application/xml;
     }
 
+    location = /insights/feed.xml {
+        try_files \$uri =404;
+        add_header Cache-Control "public, max-age=1800";
+        default_type application/rss+xml;
+    }
+
+    location = /insights {
+        return 301 /insights/;
+    }
+
     location = /studio {
         return 301 /studio/;
     }

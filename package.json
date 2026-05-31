@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "postbuild": "node scripts/generate-sitemap.mjs && (node scripts/prerender.mjs || echo 'prerender skipped')",
+    "postbuild": "node scripts/generate-sitemap.mjs && node scripts/prerender-seo.mjs",
     "optimize-images": "node scripts/optimize-images.mjs",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit"

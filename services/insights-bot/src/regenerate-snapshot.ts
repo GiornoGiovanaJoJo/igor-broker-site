@@ -7,18 +7,21 @@ import { env } from './env.js';
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
 
 /**
- * Rebuilds dist/data/insights-snapshot.json (+ sitemap) so new bot posts appear on the site
- * without a full redeploy.
+ * Rebuilds snapshot, sitemap, RSS and static SEO HTML for Insights routes.
  */
 export async function regenerateInsightsSnapshot(): Promise<void> {
-  const script = resolve(repoRoot, 'scripts/generate-sitemap.mjs');
   const distDir = resolve(repoRoot, 'dist');
-
-  if (!existsSync(script)) {
-    throw new Error(`Snapshot script not found: ${script}`);
-  }
   if (!existsSync(distDir)) {
     throw new Error(`dist/ missing — run site build before publishing insights`);
+  }
+
+  await runScript(resolve(repoRoot, 'scripts/generate-sitemap.mjs'));
+  await runScript(resolve(repoRoot, 'scripts/prerender-seo.mjs'));
+}
+
+async function runScript(script: string): Promise<void> {
+  if (!existsSync(script)) {
+    throw new Error(`Script not found: ${script}`);
   }
 
   await new Promise<void>((resolvePromise, reject) => {
@@ -45,7 +48,7 @@ export async function regenerateInsightsSnapshot(): Promise<void> {
         resolvePromise();
         return;
       }
-      reject(new Error(`insights snapshot regen failed (exit ${code}): ${stderr.slice(-800)}`));
+      reject(new Error(`${script} failed (exit ${code}): ${stderr.slice(-800)}`));
     });
   });
 }
