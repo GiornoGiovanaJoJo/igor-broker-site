@@ -40,6 +40,16 @@ export type UserSession = {
 
 const sessions = new Map<number, UserSession>();
 
+let lastEditorChatId: number | null = null;
+
+export function setLastEditorChatId(userId: number): void {
+  lastEditorChatId = userId;
+}
+
+export function getLastEditorChatId(): number | null {
+  return lastEditorChatId;
+}
+
 export function getSession(userId: number): UserSession {
   let session = sessions.get(userId);
   if (!session) {

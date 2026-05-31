@@ -28,6 +28,7 @@ export const env = {
   openaiApiKey: process.env.OPENAI_API_KEY ?? '',
   channelUsername: process.env.TELEGRAM_CHANNEL_USERNAME ?? 'IgorBroker',
   channelId: process.env.TELEGRAM_CHANNEL_ID ?? '',
+  importChatId: process.env.TELEGRAM_IMPORT_CHAT_ID ?? '',
 };
 
 export function botConfigured(): boolean {

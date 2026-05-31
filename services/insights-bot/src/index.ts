@@ -5,6 +5,7 @@ import { createBot } from './bot.js';
 import { collectDiagnostics, getBotUsername, getLaunchState, setBotUsername, setLaunchState } from './diagnostics.js';
 import { handleFormatRequest } from './format-api.js';
 import { importChannelPostsToSanity, type ImportResult } from './channel-bulk-import.js';
+import { getLastEditorChatId } from './session.js';
 
 const app = express();
 app.use(express.json({ limit: '512kb' }));
@@ -13,6 +14,15 @@ const usePolling = env.usePolling || !env.publicUrl;
 let channelImportRunning = false;
 let channelImportLast: ImportResult | null = null;
 let channelImportError: string | null = null;
+let activeBot: Telegraf | null = null;
+
+function resolveImportChatId(): number | null {
+  if (env.importChatId) {
+    const id = Number.parseInt(env.importChatId, 10);
+    if (Number.isFinite(id)) return id;
+  }
+  return getLastEditorChatId();
+}
 
 function startPollingBot(bot: Telegraf, attempt = 1) {
   if (attempt === 1) setLaunchState('launching');
@@ -94,14 +104,25 @@ app.post('/admin/import-channel', (req, res) => {
     return;
   }
 
+  const destChatId = resolveImportChatId();
+  if (!activeBot?.telegram || !destChatId) {
+    res.status(400).json({
+      error:
+        'Нужен TELEGRAM_IMPORT_CHAT_ID в .env или вход в бота (/start + PIN). Бот должен быть админом @IgorBroker.',
+    });
+    return;
+  }
+
   channelImportRunning = true;
   channelImportError = null;
-  res.json({ started: true, message: 'Импорт @IgorBroker запущен. Статус: GET /admin/import-channel/status' });
+  res.json({ started: true, message: 'Импорт @IgorBroker через Bot API запущен', destChatId });
 
   void importChannelPostsToSanity({
     limit: limit ?? 500,
     dryRun: Boolean(dryRun),
     regenerateSeo: true,
+    telegram: activeBot.telegram,
+    destChatId,
   })
     .then((result) => {
       channelImportLast = result;
@@ -117,7 +138,8 @@ app.post('/admin/import-channel', (req, res) => {
 });
 
 if (botConfigured()) {
-  const bot = createBot();
+  activeBot = createBot();
+  const bot = activeBot;
 
   bot.use(async (ctx, next) => {
     console.log('Update:', ctx.updateType, ctx.from?.id, 'text' in (ctx.message ?? {}) ? (ctx.message as { text?: string }).text : '');

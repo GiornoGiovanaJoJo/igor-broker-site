@@ -9,14 +9,19 @@ import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import type { Telegram } from 'telegraf';
+import type { Message } from 'telegraf/types';
 import { env } from './env.js';
 import type { DraftBlock } from './format.js';
 import { estimateReadingTimeMinutes, parseBodyToBlocks, slugifyTitle } from './format.js';
 import {
+  extractPhotoFileIds,
   guessCategory,
+  messageText,
   parseChannelPostText,
 } from './channel-import.js';
 import type { InsightCategory } from './session.js';
+import { fetchBuffer } from './telegram.js';
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
 const CHANNEL = env.channelUsername;
@@ -44,17 +49,6 @@ async function fetchText(url: string, useProxy = false): Promise<string> {
     responseType: 'text',
   });
   return res.data;
-}
-
-async function fetchBuffer(url: string, useProxy = false): Promise<Buffer> {
-  const agent = useProxy ? getProxyAgent() : undefined;
-  const res = await axios.get<ArrayBuffer>(url, {
-    timeout: env.telegramTimeoutMs,
-    httpAgent: agent,
-    httpsAgent: agent,
-    responseType: 'arraybuffer',
-  });
-  return Buffer.from(res.data);
 }
 
 export type ScrapedChannelPost = {
@@ -145,6 +139,67 @@ export async function scrapeChannelPosts(limit = 500): Promise<ScrapedChannelPos
   return [...collected.values()].sort((a, b) => b.messageId - a.messageId).slice(0, limit);
 }
 
+async function resolveChannelChatId(telegram: Telegram): Promise<number> {
+  if (env.channelId) return Number.parseInt(env.channelId, 10);
+  const chat = await telegram.getChat(`@${CHANNEL}`);
+  if (chat.type !== 'channel') throw new Error('TELEGRAM_CHANNEL_USERNAME не указывает на канал');
+  return chat.id;
+}
+
+function messageToScrapedPost(message: Message, messageId: number): ScrapedChannelPost | null {
+  const text = messageText(message);
+  if (!text) return null;
+  const date = 'date' in message && typeof message.date === 'number' ? message.date : Math.floor(Date.now() / 1000);
+  return {
+    messageId,
+    publishedAt: new Date(date * 1000).toISOString(),
+    rawText: text,
+    imageUrls: [],
+    sourceUrl: `https://t.me/${CHANNEL}/${messageId}`,
+  };
+}
+
+/** Primary import path: Bot API forward (works through SOCKS proxy on RU VPS). */
+export async function scrapeChannelPostsViaBotApi(
+  telegram: Telegram,
+  destChatId: number,
+  limit = 500,
+): Promise<{ posts: ScrapedChannelPost[]; coverFileIds: Map<number, string> }> {
+  const channelId = await resolveChannelChatId(telegram);
+  const posts: ScrapedChannelPost[] = [];
+  const coverFileIds = new Map<number, string>();
+  let missed = 0;
+  const startId = Number(process.env.TELEGRAM_IMPORT_START_ID || 8000);
+
+  console.log(`Bot API import: channel ${channelId}, dest ${destChatId}, from message ${startId}`);
+
+  for (let messageId = startId; messageId > 0 && posts.length < limit && missed < 250; messageId -= 1) {
+    try {
+      const forwarded = await telegram.forwardMessage(destChatId, channelId, messageId, {
+        disable_notification: true,
+      });
+      missed = 0;
+      const scraped = messageToScrapedPost(forwarded, messageId);
+      if (scraped) {
+        const photos = extractPhotoFileIds([forwarded]);
+        if (photos.coverFileId) coverFileIds.set(messageId, photos.coverFileId);
+        posts.push(scraped);
+      }
+      await telegram.deleteMessage(destChatId, forwarded.message_id).catch(() => undefined);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (/message to forward not found|message not found|MESSAGE_ID_INVALID|can't be forwarded/i.test(msg)) {
+        missed += 1;
+        continue;
+      }
+      throw err;
+    }
+    await new Promise((r) => setTimeout(r, 150));
+  }
+
+  return { posts, coverFileIds };
+}
+
 function getSanityClient(): SanityClient {
   return createClient({
     projectId: env.sanityProjectId,
@@ -195,10 +250,14 @@ async function postExists(client: SanityClient, sourceUrl: string, title: string
   return found > 0;
 }
 
-async function uploadImage(client: SanityClient, url: string): Promise<{ _type: 'image'; asset: { _type: 'reference'; _ref: string } }> {
-  const buffer = await fetchBuffer(url);
-  const filename = url.split('/').pop()?.split('?')[0] || `tg-${Date.now()}.jpg`;
-  const asset = await client.assets.upload('image', buffer, { filename });
+async function uploadImageFromFileId(
+  telegram: Telegram,
+  client: SanityClient,
+  fileId: string,
+): Promise<{ _type: 'image'; asset: { _type: 'reference'; _ref: string } }> {
+  const link = await telegram.getFileLink(fileId);
+  const buffer = await fetchBuffer(link.href);
+  const asset = await client.assets.upload('image', buffer, { filename: `tg-${Date.now()}.jpg` });
   return { _type: 'image', asset: { _type: 'reference', _ref: asset._id } };
 }
 
@@ -231,12 +290,30 @@ export async function importChannelPostsToSanity(options: {
   limit?: number;
   dryRun?: boolean;
   regenerateSeo?: boolean;
+  telegram?: Telegram;
+  destChatId?: number | null;
 }): Promise<ImportResult> {
   const limit = options.limit ?? 500;
   const dryRun = options.dryRun ?? false;
   const client = getSanityClient();
 
-  const posts = await scrapeChannelPosts(limit);
+  let posts: ScrapedChannelPost[] = [];
+  let coverFileIds = new Map<number, string>();
+
+  if (options.telegram && options.destChatId) {
+    const scraped = await scrapeChannelPostsViaBotApi(options.telegram, options.destChatId, limit);
+    posts = scraped.posts;
+    coverFileIds = scraped.coverFileIds;
+  } else {
+    try {
+      posts = await scrapeChannelPosts(limit);
+    } catch (err) {
+      throw new Error(
+        `Импорт недоступен: укажите TELEGRAM_IMPORT_CHAT_ID или войдите в бота (/start + PIN). ${err instanceof Error ? err.message : err}`,
+      );
+    }
+  }
+
   const result: ImportResult = {
     scraped: posts.length,
     created: 0,
@@ -272,9 +349,18 @@ export async function importChannelPostsToSanity(options: {
       }
 
       let coverImage;
-      if (post.imageUrls[0]) {
+      const fileId = coverFileIds.get(post.messageId);
+      if (fileId && options.telegram) {
         try {
-          coverImage = await uploadImage(client, post.imageUrls[0]);
+          coverImage = await uploadImageFromFileId(options.telegram, client, fileId);
+        } catch {
+          /* optional cover */
+        }
+      } else if (post.imageUrls[0]) {
+        try {
+          const buffer = await fetchBuffer(post.imageUrls[0]);
+          const asset = await client.assets.upload('image', buffer, { filename: `tg-${Date.now()}.jpg` });
+          coverImage = { _type: 'image' as const, asset: { _type: 'reference' as const, _ref: asset._id } };
         } catch {
           /* optional cover */
         }

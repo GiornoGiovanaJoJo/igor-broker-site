@@ -6,6 +6,7 @@ import { normalizeDraftText, parseBodyToBlocks, slugifyTitle } from './format.js
 import { formatDraftBody } from './format-api.js';
 import { buildPreviewMessage } from './preview.js';
 import { publishDraft } from './sanity.js';
+import { importChannelPostsToSanity } from './channel-bulk-import.js';
 import {
   buildImportDraft,
   collectAlbumMessages,
@@ -20,6 +21,7 @@ import {
   clearDraft,
   getSession,
   resetSession,
+  setLastEditorChatId,
   type InsightCategory,
 } from './session.js';
 
@@ -76,6 +78,7 @@ function helpText(): string {
     '*Импорт из канала:*',
     '• Перешлите пост из @IgorBroker боту — один шаг',
     '• Или отправьте ссылку вида `https://t.me/IgorBroker/123`',
+    '• `/import_channel` — перенести все посты канала в ленту',
     '• Фото, текст и форматирование Cursor — автоматически',
     '',
     'Тело материала — обычный текст без разметки.',
@@ -386,11 +389,35 @@ export function createBot(): Telegraf {
       return;
     }
 
+    if (text === '/import_channel' || text === '/import') {
+      if (!session.authenticated) {
+        await ctx.reply('Сначала /start и PIN.');
+        return;
+      }
+      await ctx.reply('📥 Импорт всех постов из @IgorBroker в ленту Insights… Это займёт несколько минут.');
+      try {
+        const result = await importChannelPostsToSanity({
+          telegram: ctx.telegram,
+          destChatId: userId,
+          limit: 500,
+          regenerateSeo: true,
+        });
+        await ctx.reply(
+          `Импорт завершён ✅\n\nНайдено: ${result.scraped}\nСоздано: ${result.created}\nПропущено: ${result.skipped}\nОшибок: ${result.failed}`,
+          mainMenuKeyboard(),
+        );
+      } catch (err) {
+        await ctx.reply(`Ошибка импорта: ${err instanceof Error ? err.message : 'unknown'}`);
+      }
+      return;
+    }
+
     if (session.step === 'pin') {
       if (text === env.editorPin) {
         session.authenticated = true;
         session.step = 'idle';
         session.pinAttempts = 0;
+        setLastEditorChatId(userId);
         await ctx.reply('Доступ разрешён.', mainMenuKeyboard());
       } else {
         session.pinAttempts += 1;
