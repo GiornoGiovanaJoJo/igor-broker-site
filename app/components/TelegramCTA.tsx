@@ -47,7 +47,7 @@ export function TelegramCTA() {
           Аналитика рынка — в канале
         </motion.h2>
         <motion.p
-          className="text-[16px] sm:text-[18px] text-muted-foreground mb-10 max-w-2xl mx-auto font-light leading-relaxed"
+          className="text-[16px] sm:text-[18px] text-muted-foreground mb-10 max-w-2xl mx-auto font-normal leading-[1.65]"
           {...inView}
         >
           Отобранные материалы по новостройкам, ставкам и застройщикам — без шума и массовых рассылок

@@ -206,13 +206,13 @@ export function WhyMe() {
 
       <div className="relative z-10 mx-auto max-w-7xl">
         <motion.div
-          className="mx-auto mb-14 max-w-3xl text-center lg:mb-16"
+          className="mx-auto mb-14 max-w-3xl text-center lg:mb-16 readable-over-bg"
           initial={reduceMotion ? false : { opacity: 0, y: 18 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: '-80px' }}
           transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
         >
-          <p className="mb-4 text-[11px] font-medium uppercase tracking-[0.28em] text-accent/90">Private advisory</p>
+          <p className="mb-4 text-[11px] font-medium uppercase tracking-[0.28em] text-accent">Private advisory</p>
           <h2
             id="why-me-heading"
             className="mb-5 text-[38px] font-semibold tracking-tight text-primary sm:text-[46px]"
@@ -227,7 +227,7 @@ export function WhyMe() {
             {CONTRAST_PILLS.map((pill) => (
               <span
                 key={pill}
-                className="inline-flex items-center rounded-full border border-border/80 bg-card/40 px-3.5 py-1.5 text-[12px] font-medium tracking-wide text-foreground/85 backdrop-blur-sm"
+                className="inline-flex items-center rounded-full border border-border/80 bg-card/40 px-3.5 py-1.5 text-[12px] font-medium tracking-wide text-foreground/92 backdrop-blur-sm"
               >
                 {pill}
               </span>

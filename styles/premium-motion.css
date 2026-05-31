@@ -130,3 +130,85 @@
     animation: none !important;
   }
 }
+
+/* ── Brick wall crack background ── */
+
+.brick-crack-bg {
+  pointer-events: none;
+}
+
+.brick-mortar-bg {
+  fill: #070708;
+}
+
+.brick-face {
+  fill: url(#brick-face-grad);
+  opacity: calc(0.58 + var(--brick-shade, 0.04));
+  stroke: rgba(212, 188, 132, 0.04);
+  stroke-width: 0.5;
+}
+
+.brick-crack {
+  fill: none;
+  stroke: rgba(6, 5, 4, 0.88);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition:
+    stroke 0.15s ease,
+    opacity 0.15s ease,
+    stroke-width 0.15s ease;
+}
+
+.brick-crack--primary {
+  stroke-width: 2;
+  opacity: 0.38;
+}
+
+.brick-crack--secondary {
+  stroke-width: 1.25;
+  opacity: 0.28;
+}
+
+.brick-crack--micro {
+  stroke-width: 0.55;
+  opacity: 0.12;
+}
+
+.brick-crack-bg:not(.brick-crack-bg--interactive) .brick-crack--primary {
+  opacity: 0.34;
+}
+
+.brick-crack-bg:not(.brick-crack-bg--interactive) .brick-crack--secondary {
+  opacity: 0.24;
+}
+
+.brick-crack-bg:not(.brick-crack-bg--interactive) .brick-crack--micro {
+  opacity: 0.1;
+}
+
+.brick-crack--lit.brick-crack--primary {
+  stroke: #f0dba0;
+  stroke-width: 2.6;
+  opacity: 1;
+  filter: url(#crack-gold-glow);
+}
+
+.brick-crack--lit.brick-crack--secondary {
+  stroke: #e8d09a;
+  stroke-width: 1.8;
+  opacity: 0.95;
+  filter: url(#crack-gold-glow);
+}
+
+.brick-crack--lit.brick-crack--micro {
+  stroke: #dcc488;
+  stroke-width: 1;
+  opacity: 0.75;
+  filter: url(#crack-gold-glow);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .brick-crack {
+    transition: none;
+  }
+}

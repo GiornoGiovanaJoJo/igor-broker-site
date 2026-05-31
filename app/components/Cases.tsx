@@ -43,8 +43,8 @@ export function Cases() {
   return (
     <section id="cases" className="relative py-20 sm:py-24 px-4 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
-        <div className="mb-14 sm:mb-16 text-center">
-          <p className="mb-3 text-[11px] font-medium uppercase tracking-[0.28em] text-accent/90">Опыт</p>
+        <div className="mb-14 sm:mb-16 text-center readable-over-bg">
+          <p className="mb-3 text-[11px] font-medium uppercase tracking-[0.28em] text-accent">Опыт</p>
           <h2 className="mb-4 text-[34px] font-semibold tracking-tight text-primary sm:text-[46px]">Кейсы</h2>
           <p className="section-lead">
             Форматы реальных подборов — без публичных цен и рекламы застройщиков
@@ -95,7 +95,7 @@ export function Cases() {
                     <span>{caseItem.date}</span>
                   </div>
 
-                  <p className="card-text-grow text-[14px] text-foreground/85 sm:text-[15px]">{caseItem.description}</p>
+                  <p className="card-text-grow text-[14px] text-foreground/92 sm:text-[15px]">{caseItem.description}</p>
 
                   <div className="card-footer flex items-center gap-2 text-accent">
                     <CheckCircle className="h-5 w-5 shrink-0 opacity-90" aria-hidden />

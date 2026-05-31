@@ -4,7 +4,11 @@ export type MotionProfile = {
   /** Only prefers-reduced-motion (a11y) */
   reduceMotion: boolean;
   isMobile: boolean;
-  /** Hex-crack canvas — desktop fine pointer ≥1024px */
+  /** Static hex-crack SVG grid — desktop + mobile */
+  showHexCracks: boolean;
+  /** Hover highlight on crack paths — desktop fine pointer only */
+  allowCrackHover: boolean;
+  /** @deprecated use allowCrackHover */
   allowHexCrack: boolean;
   /** Legacy blur-orbs slot; true when hex crack is active on desktop */
   allowHeavyEffects: boolean;
@@ -22,6 +26,8 @@ function readProfile(): MotionProfile {
     return {
       reduceMotion: false,
       isMobile: false,
+      showHexCracks: false,
+      allowCrackHover: false,
       allowHexCrack: false,
       allowHeavyEffects: false,
       allowContentMotion: true,
@@ -30,13 +36,16 @@ function readProfile(): MotionProfile {
 
   const isMobile = window.matchMedia(MOBILE_QUERY).matches || window.matchMedia(COARSE_QUERY).matches;
   const reduceMotion = window.matchMedia(REDUCE_QUERY).matches;
-  const allowHexCrack = window.matchMedia(HEX_CRACK_QUERY).matches && !reduceMotion;
+  const allowCrackHover = window.matchMedia(HEX_CRACK_QUERY).matches && !reduceMotion;
+  const showHexCracks = !reduceMotion;
 
   return {
     isMobile,
     reduceMotion,
-    allowHexCrack,
-    allowHeavyEffects: allowHexCrack,
+    showHexCracks,
+    allowCrackHover,
+    allowHexCrack: allowCrackHover,
+    allowHeavyEffects: allowCrackHover,
     allowContentMotion: !reduceMotion,
   };
 }

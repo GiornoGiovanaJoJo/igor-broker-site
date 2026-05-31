@@ -36,14 +36,14 @@ export function FAQ() {
     <section id="faq" className="relative py-24 px-4 sm:px-6 lg:px-8 border-t border-border/80">
       <div className="max-w-3xl mx-auto">
         <motion.div
-          className="text-center mb-12"
+          className="text-center mb-12 readable-over-bg"
           initial={{ opacity: 0, y: 16 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.55 }}
         >
           <h2 className="text-[34px] sm:text-[42px] text-primary mb-4 font-bold tracking-tight">Частые вопросы</h2>
-          <p className="text-[17px] text-muted-foreground font-light leading-relaxed">
+          <p className="text-[17px] text-muted-foreground font-normal leading-[1.65]">
             Коротко о формате работы и ожиданиях — без обещаний «лучшей квартиры за один звонок»
           </p>
         </motion.div>

@@ -74,7 +74,7 @@ export function CatalogDownload() {
               >
                 Каталоги недвижимости
               </h2>
-              <p className="mt-6 text-[16px] sm:text-[17px] text-muted-foreground leading-relaxed font-light max-w-md">
+              <p className="mt-6 text-[16px] sm:text-[17px] text-muted-foreground leading-[1.65] font-normal max-w-md">
                 Подборка форматов и локаций под запрос: без навязчивых рассылок — материалы передам удобным способом после короткого контакта.
               </p>
             </motion.div>

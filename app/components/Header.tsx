@@ -73,7 +73,7 @@ export function Header() {
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
           isScrolled
             ? 'bg-background/92 max-md:bg-background/98 border-b border-border shadow-[0_8px_32px_rgba(0,0,0,0.45)] md:backdrop-blur-xl'
-            : 'bg-transparent border-b border-transparent'
+            : 'bg-background/55 border-b border-border/40 backdrop-blur-md'
         }`}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -101,7 +101,7 @@ export function Header() {
                   className={`whitespace-nowrap text-[14px] tracking-wide transition-colors duration-300 ${
                     item.accent
                       ? 'text-accent/95 hover:text-accent font-medium'
-                      : 'text-foreground/75 hover:text-accent'
+                      : 'text-foreground/88 hover:text-accent'
                   } ${location.pathname.startsWith(item.to) ? 'text-accent' : ''}`}
                 >
                   {item.label}
@@ -112,7 +112,7 @@ export function Header() {
                   key={item.id}
                   type="button"
                   onClick={() => handleNav(item.id)}
-                  className="whitespace-nowrap text-[14px] text-foreground/75 hover:text-accent transition-colors duration-300 tracking-wide"
+                  className="whitespace-nowrap text-[14px] text-foreground/88 hover:text-accent transition-colors duration-300 tracking-wide"
                 >
                   {item.label}
                 </button>

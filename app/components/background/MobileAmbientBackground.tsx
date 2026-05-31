@@ -1,18 +1,8 @@
-/** CSS-only ambient layers for mobile — no canvas, compositor-friendly. */
-
-const HEX_MESH_SVG = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='100' viewBox='0 0 56 100'%3E%3Cpath d='M28 2 L52 15 L52 41 L28 54 L4 41 L4 15 Z' fill='none' stroke='%23b8955c' stroke-width='0.6'/%3E%3Cpath d='M28 46 L52 59 L52 85 L28 98 L4 85 L4 59 Z' fill='none' stroke='%23b8955c' stroke-width='0.6'/%3E%3C/svg%3E")`;
+/** CSS-only ambient layers for mobile — aurora only; cracks via HexCrackBackground */
 
 export function MobileAmbientBackground() {
   return (
     <div className="mobile-ambient absolute inset-0 pointer-events-none" aria-hidden>
-      <div
-        className="absolute inset-0 opacity-[0.025]"
-        style={{
-          backgroundImage: HEX_MESH_SVG,
-          backgroundSize: '56px 100px',
-        }}
-      />
-
       <div
         className="absolute inset-0 opacity-95"
         style={{

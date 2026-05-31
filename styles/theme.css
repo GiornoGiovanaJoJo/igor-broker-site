@@ -14,7 +14,7 @@
   --secondary: #171719;
   --secondary-foreground: #e6e4df;
   --muted: #1a1a1d;
-  --muted-foreground: #9c968c;
+  --muted-foreground: #ada89e;
   --accent: #b8955c;
   --accent-foreground: #0a0908;
   --destructive: #c53e3e;
@@ -45,7 +45,7 @@
   --insights-surface: #0c0c0f;
   --insights-surface-elevated: #121218;
   --insights-prose: #ece9e3;
-  --insights-prose-muted: #b8b2a8;
+  --insights-prose-muted: #c0bab0;
   --insights-link: #d4bc84;
   --insights-image-bg: #0a0a0c;
   --cat-analytics: #8fa8c4;
@@ -68,7 +68,7 @@
   --secondary: #161618;
   --secondary-foreground: #e8e6e1;
   --muted: #18181b;
-  --muted-foreground: #9a958c;
+  --muted-foreground: #ada89e;
   --accent: #c4a66a;
   --accent-foreground: #0a0908;
   --destructive: oklch(0.396 0.141 25.723);
@@ -231,7 +231,31 @@
   }
 
   .section-lead {
-    @apply mx-auto max-w-2xl text-pretty text-[17px] font-light leading-relaxed text-muted-foreground sm:text-[18px];
+    @apply mx-auto max-w-2xl text-pretty text-[17px] font-normal leading-[1.65] text-muted-foreground sm:text-[18px];
+  }
+
+  .readable-over-bg {
+    text-shadow: 0 1px 14px rgba(6, 6, 7, 0.92);
+  }
+
+  .readable-panel {
+    position: relative;
+    isolation: isolate;
+  }
+
+  .readable-panel::before {
+    content: '';
+    position: absolute;
+    inset: -1.25rem -0.75rem;
+    border-radius: 1.75rem;
+    background: radial-gradient(
+      ellipse 130% 110% at 20% 45%,
+      rgba(6, 6, 7, 0.78) 0%,
+      rgba(6, 6, 7, 0.52) 50%,
+      transparent 100%
+    );
+    pointer-events: none;
+    z-index: -1;
   }
 
   .insights-editorial {

@@ -63,12 +63,12 @@ export function Hero() {
         }
       : {};
 
-  const leftColumnClass = `space-y-7 sm:space-y-8${isMobile && allowContentMotion ? ' hero-enter' : ''}`;
+  const leftColumnClass = `readable-panel space-y-7 sm:space-y-8${isMobile && allowContentMotion ? ' hero-enter' : ''}`;
 
   const heroContent = (
     <>
       <div className="space-y-5 sm:space-y-6">
-        <h1 className="text-[38px] sm:text-[54px] lg:text-[64px] leading-[1.08] tracking-tight text-primary font-semibold">
+        <h1 className="text-[38px] sm:text-[54px] lg:text-[64px] leading-[1.08] tracking-tight text-primary font-semibold readable-over-bg">
           Новостройка{' '}
           <span className="relative inline-block">
             <span className="relative z-10 text-accent">под вашу задачу</span>
@@ -91,7 +91,7 @@ export function Hero() {
           ))}
         </div>
 
-        <div className="space-y-4 max-w-xl text-[17px] sm:text-[19px] text-muted-foreground leading-relaxed font-light">
+        <div className="space-y-4 max-w-xl text-[17px] sm:text-[19px] text-muted-foreground leading-[1.65] font-normal readable-over-bg">
           <p>
             Конфиденциальный подбор и консультация по стратегии выбора.
             <br className="hidden sm:block" />
@@ -99,13 +99,13 @@ export function Hero() {
           </p>
           <p>
             Как использовать{' '}
-            <span className="text-foreground/85">ипотеку</span>,{' '}
-            <span className="text-foreground/85">рассрочку</span> и{' '}
-            <span className="text-foreground/85">100% оплату</span>?
+            <span className="text-foreground/95">ипотеку</span>,{' '}
+            <span className="text-foreground/95">рассрочку</span> и{' '}
+            <span className="text-foreground/95">100% оплату</span>?
           </p>
-          <p className="text-foreground/80">Сопровождение сделки на уровне private banking.</p>
+          <p className="text-foreground/92">Сопровождение сделки на уровне private banking.</p>
           <p>
-            Регион работы и анализа: <span className="text-foreground/85">г. Москва</span>.
+            Регион работы и анализа: <span className="text-foreground/95">г. Москва</span>.
           </p>
         </div>
       </div>

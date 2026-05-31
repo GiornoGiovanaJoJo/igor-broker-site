@@ -36,8 +36,8 @@ export function ForWhom() {
   return (
     <section id="for-whom" className="relative py-20 sm:py-24 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
-        <div className="text-center mb-14 sm:mb-16">
-          <p className="mb-3 text-[11px] font-medium uppercase tracking-[0.28em] text-accent/90">Аудитория</p>
+        <div className="text-center mb-14 sm:mb-16 readable-over-bg">
+          <p className="mb-3 text-[11px] font-medium uppercase tracking-[0.28em] text-accent">Аудитория</p>
           <h2 className="text-[34px] sm:text-[46px] text-primary mb-4 font-semibold tracking-tight">Для кого</h2>
           <p className="section-lead">
             Работаю с семьями и частными инвесторами, которым важны цифры, время и приватность — без давления и «горящих акций»
@@ -62,7 +62,7 @@ export function ForWhom() {
                 className="card-shell group relative overflow-hidden rounded-3xl border border-border bg-card/90 p-7 sm:p-8 transition-colors duration-300 hover:border-accent/25"
                 {...motionProps}
               >
-                <span className="absolute top-5 right-6 text-[11px] font-medium tracking-[0.2em] text-accent/40">{segment.accent}</span>
+                <span className="absolute top-5 right-6 text-[11px] font-medium tracking-[0.2em] text-accent/55" aria-hidden>{segment.accent}</span>
                 <div className="relative z-10 flex h-full flex-col">
                   <div
                     className={`mb-5 flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-accent/15 bg-gradient-to-br ${segment.iconBg}`}

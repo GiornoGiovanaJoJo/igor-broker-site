@@ -30,8 +30,8 @@ export function Testimonials() {
   return (
     <section id="testimonials" className="relative py-20 sm:py-24 px-4 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
-        <div className="mb-14 sm:mb-16 text-center">
-          <p className="mb-3 text-[11px] font-medium uppercase tracking-[0.28em] text-accent/90">Доверие</p>
+        <div className="mb-14 sm:mb-16 text-center readable-over-bg">
+          <p className="mb-3 text-[11px] font-medium uppercase tracking-[0.28em] text-accent">Доверие</p>
           <h2 className="mb-4 text-[34px] font-semibold tracking-tight text-primary sm:text-[46px]">Отзывы</h2>
           <p className="section-lead">Обратная связь от клиентов, с которыми выстроена долгосрочная работа</p>
         </div>
@@ -64,7 +64,7 @@ export function Testimonials() {
                     ))}
                   </div>
 
-                  <p className="card-text-grow text-[15px] text-foreground/88">&ldquo;{testimonial.text}&rdquo;</p>
+                  <p className="card-text-grow text-[15px] text-foreground/92">&ldquo;{testimonial.text}&rdquo;</p>
 
                   <footer className="card-footer">
                     <div className="text-[15px] font-semibold text-primary">{testimonial.author}</div>

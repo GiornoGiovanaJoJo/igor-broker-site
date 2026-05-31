@@ -33,7 +33,7 @@ export function LeadForm() {
           <h2 className="text-[32px] sm:text-[40px] text-primary mb-3 font-semibold tracking-tight">
             Короткий запрос
           </h2>
-          <p className="text-[16px] sm:text-[17px] text-muted-foreground font-light leading-relaxed">
+          <p className="text-[16px] sm:text-[17px] text-muted-foreground font-normal leading-[1.65]">
             Имя и контакт — отвечу по сути, без длинных анкет
           </p>
         </motion.div>

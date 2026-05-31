@@ -9,7 +9,7 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks(id) {
-          if (id.includes('components/background/HexCrackCanvas') || id.includes('components/background/hexGrid')) {
+          if (id.includes('components/background/BrickCrackBackground') || id.includes('components/background/brickCrackGeometry')) {
             return 'hex-background';
           }
           if (id.includes('node_modules/motion')) return 'motion';
