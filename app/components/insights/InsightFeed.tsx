@@ -89,7 +89,7 @@ export function InsightFeed() {
       </div>
 
       {loading && (
-        <div className="cards-grid md:grid-cols-2 lg:grid-cols-3">
+        <div className="cards-grid sm:grid-cols-2 xl:grid-cols-3">
           {[...Array(3)].map((_, i) => (
             <div key={i} className="h-[420px] animate-pulse rounded-[26px] bg-insights-surface border border-border" />
           ))}
@@ -116,7 +116,7 @@ export function InsightFeed() {
       {seoPosts.length > 0 && <InsightFeedJsonLd posts={seoPosts} />}
 
       {!loading && posts.length > 0 && (
-        <div className="cards-grid md:grid-cols-2 lg:grid-cols-3">
+        <div className="cards-grid sm:grid-cols-2 xl:grid-cols-3">
           {posts.map((post, i) => (
             <InsightCard key={post._id} post={post} index={i} />
           ))}

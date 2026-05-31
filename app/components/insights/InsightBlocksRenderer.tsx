@@ -5,7 +5,7 @@ import { RichInsightText } from './RichInsightText';
 
 export function InsightBlocksRenderer({ blocks }: { blocks: InsightBlock[] }) {
   return (
-    <div className="insights-body space-y-7 max-w-[680px] mx-auto">
+    <div className="insights-body space-y-7 w-full">
       {blocks.map((block, i) => {
         switch (block._type) {
           case 'paragraph':

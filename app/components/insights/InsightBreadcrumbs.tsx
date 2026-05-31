@@ -18,7 +18,7 @@ export function InsightBreadcrumbs({ items }: { items: Crumb[] }) {
                   {item.label}
                 </Link>
               ) : (
-                <span className={isLast ? 'text-insights-prose line-clamp-1' : undefined}>{item.label}</span>
+                <span className={isLast ? 'text-insights-prose break-words' : undefined}>{item.label}</span>
               )}
             </li>
           );

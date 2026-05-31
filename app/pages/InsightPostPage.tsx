@@ -64,8 +64,8 @@ export function InsightPostPage() {
 
   if (loading) {
     return (
-      <InsightsLayout>
-        <div className="mx-auto max-w-[680px] animate-pulse space-y-6">
+      <InsightsLayout contentClassName="max-w-7xl">
+        <div className="mx-auto w-full max-w-5xl animate-pulse space-y-6">
           <div className="h-8 w-3/4 rounded bg-insights-surface-elevated" />
           <div className="aspect-[16/10] rounded bg-insights-surface-elevated" />
           <div className="h-4 rounded bg-insights-surface-elevated" />
@@ -97,7 +97,7 @@ export function InsightPostPage() {
   const categoryStyle = CATEGORY_STYLES[post.category];
 
   return (
-    <InsightsLayout>
+    <InsightsLayout contentClassName="max-w-7xl">
       <SeoHead
         title={`${post.seoTitle ?? post.title} — Igor Broker`}
         description={post.seoDescription ?? post.excerpt}
@@ -107,25 +107,24 @@ export function InsightPostPage() {
         publishedTime={post.publishedAt}
       />
       <InsightArticleJsonLd post={post} />
-      <article className="mx-auto max-w-3xl">
+      <article className="mx-auto w-full max-w-5xl">
         <InsightBreadcrumbs
           items={[
             { label: 'Главная', href: '/' },
             { label: 'Аналитика', href: '/insights' },
-            { label: post.title },
           ]}
         />
 
-        <header className="mb-10 text-center readable-over-bg">
+        <header className="mb-10 text-center readable-over-bg px-1 sm:px-4">
           <span
             className={`mb-5 inline-block rounded-full border px-3 py-1 text-[11px] font-medium tracking-wide ${categoryStyle.badge}`}
           >
             {categoryStyle.label}
           </span>
-          <h1 className="insights-display mb-6 text-balance text-[32px] font-semibold leading-tight tracking-tight text-primary sm:text-[42px]">
+          <h1 className="insights-display insights-post-title mb-6 text-pretty text-[28px] font-semibold leading-[1.15] tracking-tight text-primary sm:text-[36px] lg:text-[44px]">
             {post.title}
           </h1>
-          <p className="mx-auto mb-6 max-w-xl text-pretty text-[18px] leading-[1.8] text-insights-prose-muted">
+          <p className="mx-auto mb-6 max-w-3xl break-words text-pretty text-[17px] leading-[1.75] text-insights-prose-muted sm:text-[18px] line-clamp-6 sm:line-clamp-none">
             {post.excerpt}
           </p>
           <div className="flex flex-wrap items-center justify-center gap-4 text-[13px] text-insights-prose-muted">

@@ -278,6 +278,15 @@
     @apply border-border/80 bg-insights-surface/90;
   }
 
+  .insights-card-shell .card-title {
+    @apply min-h-[4.25rem] line-clamp-3 text-[20px] leading-snug sm:min-h-[4.75rem] sm:text-[22px];
+  }
+
+  .insights-post-title {
+    overflow-wrap: anywhere;
+    hyphens: auto;
+  }
+
   .insights-prose-text {
     @apply text-insights-prose;
   }

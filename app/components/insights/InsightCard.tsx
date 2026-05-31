@@ -49,7 +49,7 @@ export function InsightCard({ post, index = 0 }: { post: InsightPost; index?: nu
             </span>
           </div>
 
-          <h2 className="card-title insights-display text-[22px] sm:text-[26px]">{post.title}</h2>
+          <h2 className="card-title insights-display text-[20px] sm:text-[22px]">{post.title}</h2>
           <p className="card-text-grow line-clamp-3 text-[15px] text-insights-prose/90">{post.excerpt}</p>
 
           <div className="card-footer flex items-center gap-2 text-accent">
