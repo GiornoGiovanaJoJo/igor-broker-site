@@ -25,7 +25,7 @@ const TESTIMONIALS = [
 ] as const;
 
 export function Testimonials() {
-  const { reduceMotion } = useMotionProfile();
+  const { allowContentMotion } = useMotionProfile();
 
   return (
     <section id="testimonials" className="relative py-20 sm:py-24 px-4 sm:px-6 lg:px-8">
@@ -38,7 +38,7 @@ export function Testimonials() {
 
         <div className="cards-grid md:grid-cols-3">
           {TESTIMONIALS.map((testimonial, index) => {
-            const motionProps = reduceMotion
+            const motionProps = !allowContentMotion
               ? {}
               : {
                   initial: { opacity: 0, y: 20 },

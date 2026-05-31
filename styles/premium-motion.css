@@ -70,3 +70,63 @@
 .catalog-sway {
   animation: catalog-sway 22s ease-in-out infinite;
 }
+
+@keyframes mobile-aurora-a {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+    opacity: 0.35;
+  }
+  50% {
+    transform: translate(4%, 3%) scale(1.06);
+    opacity: 0.48;
+  }
+}
+
+@keyframes mobile-aurora-b {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+    opacity: 0.3;
+  }
+  50% {
+    transform: translate(-3%, -2%) scale(1.05);
+    opacity: 0.42;
+  }
+}
+
+@keyframes hero-enter {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.mobile-aurora-a {
+  animation: mobile-aurora-a 28s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
+.mobile-aurora-b {
+  animation: mobile-aurora-b 32s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
+.hero-enter {
+  animation: hero-enter 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mobile-aurora-a,
+  .mobile-aurora-b {
+    animation: none !important;
+  }
+
+  .hero-enter {
+    animation: none !important;
+  }
+}

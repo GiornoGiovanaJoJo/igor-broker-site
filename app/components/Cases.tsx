@@ -38,7 +38,7 @@ const CASES = [
 ] as const;
 
 export function Cases() {
-  const { reduceMotion } = useMotionProfile();
+  const { allowContentMotion } = useMotionProfile();
 
   return (
     <section id="cases" className="relative py-20 sm:py-24 px-4 sm:px-6 lg:px-8">
@@ -53,7 +53,7 @@ export function Cases() {
 
         <div className="cards-grid md:grid-cols-3">
           {CASES.map((caseItem, index) => {
-            const motionProps = reduceMotion
+            const motionProps = !allowContentMotion
               ? {}
               : {
                   initial: { opacity: 0, y: 20 },

@@ -5,9 +5,9 @@ import { telegramChannelUrl } from '../site.config';
 import { useMotionProfile } from '../hooks/useMotionProfile';
 
 export function TelegramCTA() {
-  const { allowHeavyEffects, reduceMotion } = useMotionProfile();
+  const { allowHeavyEffects, allowContentMotion } = useMotionProfile();
 
-  const inView = reduceMotion
+  const inView = !allowContentMotion
     ? {}
     : {
         initial: { opacity: 0, y: 16 },

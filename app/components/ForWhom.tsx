@@ -31,7 +31,7 @@ const SEGMENTS = [
 ] as const;
 
 export function ForWhom() {
-  const { reduceMotion } = useMotionProfile();
+  const { allowContentMotion } = useMotionProfile();
 
   return (
     <section id="for-whom" className="relative py-20 sm:py-24 px-4 sm:px-6 lg:px-8">
@@ -47,7 +47,7 @@ export function ForWhom() {
         <div className="cards-grid md:grid-cols-3">
           {SEGMENTS.map((segment, index) => {
             const Icon = segment.icon;
-            const motionProps = reduceMotion
+            const motionProps = !allowContentMotion
               ? {}
               : {
                   initial: { opacity: 0, y: 20 },
