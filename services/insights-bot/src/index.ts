@@ -4,10 +4,15 @@ import { botConfigured, cursorConfigured, env } from './env.js';
 import { createBot } from './bot.js';
 import { collectDiagnostics, getBotUsername, getLaunchState, setBotUsername, setLaunchState } from './diagnostics.js';
 import { handleFormatRequest } from './format-api.js';
+import { importChannelPostsToSanity, type ImportResult } from './channel-bulk-import.js';
 
 const app = express();
 app.use(express.json({ limit: '512kb' }));
 const usePolling = env.usePolling || !env.publicUrl;
+
+let channelImportRunning = false;
+let channelImportLast: ImportResult | null = null;
+let channelImportError: string | null = null;
 
 function startPollingBot(bot: Telegraf, attempt = 1) {
   if (attempt === 1) setLaunchState('launching');
@@ -64,6 +69,51 @@ app.get('/diag', async (_req, res) => {
   } catch (err) {
     res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
   }
+});
+
+app.get('/admin/import-channel/status', (_req, res) => {
+  res.json({
+    running: channelImportRunning,
+    last: channelImportLast,
+    error: channelImportError,
+  });
+});
+
+app.post('/admin/import-channel', (req, res) => {
+  const { pin, limit, dryRun } = req.body as { pin?: string; limit?: number; dryRun?: boolean };
+  if (!pin || pin !== env.editorPin) {
+    res.status(401).json({ error: 'Неверный PIN' });
+    return;
+  }
+  if (channelImportRunning) {
+    res.status(409).json({ error: 'Импорт уже выполняется' });
+    return;
+  }
+  if (!env.sanityWriteToken) {
+    res.status(503).json({ error: 'SANITY_WRITE_TOKEN не настроен' });
+    return;
+  }
+
+  channelImportRunning = true;
+  channelImportError = null;
+  res.json({ started: true, message: 'Импорт @IgorBroker запущен. Статус: GET /admin/import-channel/status' });
+
+  void importChannelPostsToSanity({
+    limit: limit ?? 500,
+    dryRun: Boolean(dryRun),
+    regenerateSeo: true,
+  })
+    .then((result) => {
+      channelImportLast = result;
+      console.log('Channel import done:', result);
+    })
+    .catch((err) => {
+      channelImportError = err instanceof Error ? err.message : String(err);
+      console.error('Channel import failed:', err);
+    })
+    .finally(() => {
+      channelImportRunning = false;
+    });
 });
 
 if (botConfigured()) {
