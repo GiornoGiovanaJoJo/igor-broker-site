@@ -30,8 +30,8 @@ function getProxyAgent(): Agent | undefined {
   return proxyAgent;
 }
 
-async function fetchText(url: string): Promise<string> {
-  const agent = getProxyAgent();
+async function fetchText(url: string, useProxy = false): Promise<string> {
+  const agent = useProxy ? getProxyAgent() : undefined;
   const res = await axios.get<string>(url, {
     timeout: env.telegramTimeoutMs,
     httpAgent: agent,
@@ -46,8 +46,8 @@ async function fetchText(url: string): Promise<string> {
   return res.data;
 }
 
-async function fetchBuffer(url: string): Promise<Buffer> {
-  const agent = getProxyAgent();
+async function fetchBuffer(url: string, useProxy = false): Promise<Buffer> {
+  const agent = useProxy ? getProxyAgent() : undefined;
   const res = await axios.get<ArrayBuffer>(url, {
     timeout: env.telegramTimeoutMs,
     httpAgent: agent,
@@ -120,7 +120,13 @@ export async function scrapeChannelPosts(limit = 500): Promise<ScrapedChannelPos
 
   while (page < 60 && collected.size < limit) {
     const url = before ? `https://t.me/s/${CHANNEL}?before=${before}` : `https://t.me/s/${CHANNEL}`;
-    const html = await fetchText(url);
+    let html: string;
+    try {
+      html = await fetchText(url, false);
+    } catch (err) {
+      console.warn(`t.me fetch failed (direct), retry via proxy: ${err instanceof Error ? err.message : err}`);
+      html = await fetchText(url, true);
+    }
     const batch = parsePostsFromChannelHtml(html);
     if (!batch.length) break;
 
