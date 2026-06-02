@@ -44,7 +44,10 @@ export function AnimatedBackground() {
             interactive={allowCrackHover}
             className="absolute inset-0 h-full w-full"
           />
-          <div className="absolute inset-0 bg-black/40 pointer-events-none" aria-hidden />
+          <div
+            className={`absolute inset-0 pointer-events-none ${allowCrackHover ? 'bg-black/28' : 'bg-black/40'}`}
+            aria-hidden
+          />
         </>
       )}
     </div>

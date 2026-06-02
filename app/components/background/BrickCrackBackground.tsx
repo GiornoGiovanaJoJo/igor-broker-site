@@ -12,13 +12,15 @@ type Props = {
   className?: string;
 };
 
-const HEAT_CELL = 40;
-const DECAY = 0.965;
-const STAMP_RADIUS = 130;
-const STAMP_PEAK = 0.55;
-const GLOW_RADIUS = 200;
-const HEAT_THRESHOLD = 0.06;
-const MORTAR_ALPHA_MAX = 0.72;
+/** Must be small enough to hit 5px mortar gaps (was 40px → almost no hits) */
+const HEAT_CELL = 14;
+const DECAY = 0.968;
+const STAMP_RADIUS = 150;
+const STAMP_PEAK = 0.95;
+const GLOW_RADIUS = 240;
+const INNER_GLOW_RADIUS = 90;
+const HEAT_THRESHOLD = 0.035;
+const MORTAR_MASK_INSET = 0.85;
 
 const Brick = memo(function Brick({ brick }: { brick: BrickCell }) {
   const { x, y, w, h } = brick;
@@ -46,6 +48,7 @@ function createHeatGrid(w: number, h: number) {
 
 function stampRadial(
   grid: Float32Array,
+  mortarGrid: Uint8Array,
   cols: number,
   rows: number,
   cx: number,
@@ -61,13 +64,15 @@ function stampRadial(
 
   for (let row = r0; row <= r1; row++) {
     for (let col = c0; col <= c1; col++) {
+      const i = row * cols + col;
+      if (!mortarGrid[i]) continue;
+
       const px = col * HEAT_CELL + HEAT_CELL * 0.5;
       const py = row * HEAT_CELL + HEAT_CELL * 0.5;
       const d2 = (px - cx) ** 2 + (py - cy) ** 2;
       if (d2 > r2) continue;
       const t = 1 - Math.sqrt(d2) / radius;
       const add = peak * t * t;
-      const i = row * cols + col;
       grid[i] = Math.min(1, grid[i] + add);
     }
   }
@@ -85,7 +90,6 @@ function sampleHeat(
   return grid[row * cols + col];
 }
 
-/** White = mortar gaps, transparent = brick faces (for destination-in clip) */
 function createMortarMaskCanvas(
   w: number,
   h: number,
@@ -103,8 +107,9 @@ function createMortarMaskCanvas(
   mctx.fillRect(0, 0, w, h);
   mctx.globalCompositeOperation = 'destination-out';
   mctx.fillStyle = '#000';
+  const inset = MORTAR_MASK_INSET;
   for (const b of bricks) {
-    mctx.fillRect(b.x, b.y, b.w, b.h);
+    mctx.fillRect(b.x + inset, b.y + inset, b.w - inset * 2, b.h - inset * 2);
   }
   return mask;
 }
@@ -115,9 +120,64 @@ function clipToMortar(ctx: CanvasRenderingContext2D, mask: HTMLCanvasElement, w:
   ctx.globalCompositeOperation = 'source-over';
 }
 
+function paintMortarGlow(
+  ctx: CanvasRenderingContext2D,
+  gx: number,
+  gy: number,
+  intensity: number,
+) {
+  const peak = Math.min(1, intensity);
+
+  const outer = ctx.createRadialGradient(gx, gy, 0, gx, gy, GLOW_RADIUS);
+  outer.addColorStop(0, `rgba(255, 248, 235, ${0.62 * peak})`);
+  outer.addColorStop(0.2, `rgba(244, 232, 200, ${0.42 * peak})`);
+  outer.addColorStop(0.45, `rgba(212, 188, 132, ${0.22 * peak})`);
+  outer.addColorStop(0.7, `rgba(184, 149, 92, ${0.08 * peak})`);
+  outer.addColorStop(1, 'rgba(184, 149, 92, 0)');
+  ctx.fillStyle = outer;
+  ctx.fillRect(gx - GLOW_RADIUS, gy - GLOW_RADIUS, GLOW_RADIUS * 2, GLOW_RADIUS * 2);
+
+  const inner = ctx.createRadialGradient(gx, gy, 0, gx, gy, INNER_GLOW_RADIUS);
+  inner.addColorStop(0, `rgba(255, 252, 245, ${0.85 * peak})`);
+  inner.addColorStop(0.5, `rgba(240, 219, 160, ${0.35 * peak})`);
+  inner.addColorStop(1, 'rgba(240, 219, 160, 0)');
+  ctx.fillStyle = inner;
+  ctx.fillRect(gx - INNER_GLOW_RADIUS, gy - INNER_GLOW_RADIUS, INNER_GLOW_RADIUS * 2, INNER_GLOW_RADIUS * 2);
+}
+
+function paintHeatCells(
+  ctx: CanvasRenderingContext2D,
+  data: Float32Array,
+  mortarGrid: Uint8Array,
+  cols: number,
+) {
+  for (let ci = 0; ci < data.length; ci++) {
+    if (!mortarGrid[ci]) continue;
+    const h = data[ci];
+    if (h < HEAT_THRESHOLD) continue;
+
+    const col = ci % cols;
+    const row = (ci / cols) | 0;
+    const x = col * HEAT_CELL;
+    const y = row * HEAT_CELL;
+    const alpha = Math.min(1, 0.45 + h * 0.58);
+    ctx.fillStyle = `rgba(240, 219, 160, ${alpha})`;
+    ctx.fillRect(x, y, HEAT_CELL, HEAT_CELL);
+
+    if (h > 0.4) {
+      const core = Math.min(1, (h - 0.35) * 1.1);
+      const inset = 3;
+      ctx.fillStyle = `rgba(255, 248, 235, ${core * 0.85})`;
+      ctx.fillRect(x + inset, y + inset, HEAT_CELL - inset * 2, HEAT_CELL - inset * 2);
+    }
+  }
+}
+
 export function BrickCrackBackground({ interactive = false, className = '' }: Props) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const glowBufRef = useRef<HTMLCanvasElement | null>(null);
+  const blurBufRef = useRef<HTMLCanvasElement | null>(null);
   const mouseRef = useRef({ x: -1, y: -1, active: false });
   const heatRef = useRef<ReturnType<typeof createHeatGrid> | null>(null);
   const mortarGridRef = useRef<Uint8Array>(new Uint8Array(0));
@@ -166,28 +226,36 @@ export function BrickCrackBackground({ interactive = false, className = '' }: Pr
     let running = true;
     let looping = false;
 
-    const scheduleTick = () => {
-      if (!running || looping) return;
-      looping = true;
-      raf = requestAnimationFrame(tick);
-    };
-
-    const resizeCanvas = () => {
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      const w = size.w;
-      const h = size.h;
+    const ensureBuffers = (w: number, h: number, dpr: number) => {
       canvas.width = Math.floor(w * dpr);
       canvas.height = Math.floor(h * dpr);
       canvas.style.width = `${w}px`;
       canvas.style.height = `${h}px`;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      if (!glowBufRef.current) glowBufRef.current = document.createElement('canvas');
+      if (!blurBufRef.current) blurBufRef.current = document.createElement('canvas');
+      const glowBuf = glowBufRef.current;
+      const blurBuf = blurBufRef.current;
+      glowBuf.width = Math.floor(w * dpr);
+      glowBuf.height = Math.floor(h * dpr);
+      blurBuf.width = glowBuf.width;
+      blurBuf.height = glowBuf.height;
+
       const grid = createHeatGrid(w, h);
       heatRef.current = grid;
       mortarGridRef.current = buildMortarGrid(bricksRef.current, grid.cols, grid.rows, HEAT_CELL);
       mortarMaskRef.current = createMortarMaskCanvas(w, h, bricksRef.current, dpr);
     };
 
-    resizeCanvas();
+    const scheduleTick = () => {
+      if (!running || looping) return;
+      looping = true;
+      raf = requestAnimationFrame(tick);
+    };
+
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    ensureBuffers(size.w, size.h, dpr);
 
     const clientToLocal = (clientX: number, clientY: number) => {
       const rect = wrap.getBoundingClientRect();
@@ -210,15 +278,6 @@ export function BrickCrackBackground({ interactive = false, className = '' }: Pr
       scheduleTick();
     };
 
-    const drawRadialGlow = (gx: number, gy: number, intensity: number) => {
-      const g = ctx.createRadialGradient(gx, gy, 0, gx, gy, GLOW_RADIUS);
-      g.addColorStop(0, `rgba(244, 232, 200, ${0.16 * intensity})`);
-      g.addColorStop(0.4, `rgba(184, 149, 92, ${0.07 * intensity})`);
-      g.addColorStop(1, 'rgba(184, 149, 92, 0)');
-      ctx.fillStyle = g;
-      ctx.fillRect(gx - GLOW_RADIUS, gy - GLOW_RADIUS, GLOW_RADIUS * 2, GLOW_RADIUS * 2);
-    };
-
     const tick = () => {
       if (!running) return;
       looping = false;
@@ -226,7 +285,9 @@ export function BrickCrackBackground({ interactive = false, className = '' }: Pr
       const heat = heatRef.current;
       const mortarMask = mortarMaskRef.current;
       const mortarGrid = mortarGridRef.current;
-      if (!heat || !mortarMask) {
+      const glowBuf = glowBufRef.current;
+      const blurBuf = blurBufRef.current;
+      if (!heat || !mortarMask || !glowBuf || !blurBuf) {
         scheduleTick();
         return;
       }
@@ -234,12 +295,12 @@ export function BrickCrackBackground({ interactive = false, className = '' }: Pr
       const { data, cols, rows } = heat;
       for (let i = 0; i < data.length; i++) {
         data[i] *= DECAY;
-        if (data[i] < 0.004) data[i] = 0;
+        if (data[i] < 0.003) data[i] = 0;
       }
 
       const mouse = mouseRef.current;
       if (mouse.active && mouse.x >= 0) {
-        stampRadial(data, cols, rows, mouse.x, mouse.y, STAMP_RADIUS, STAMP_PEAK);
+        stampRadial(data, mortarGrid, cols, rows, mouse.x, mouse.y, STAMP_RADIUS, STAMP_PEAK);
       }
 
       let hasHeat = false;
@@ -255,12 +316,17 @@ export function BrickCrackBackground({ interactive = false, className = '' }: Pr
         return;
       }
 
-      ctx.clearRect(0, 0, size.w, size.h);
+      const gctx = glowBuf.getContext('2d');
+      if (!gctx) {
+        scheduleTick();
+        return;
+      }
+      gctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      gctx.clearRect(0, 0, size.w, size.h);
 
       if (mouse.active) {
         const peak = sampleHeat(data, cols, rows, mouse.x, mouse.y);
-        drawRadialGlow(mouse.x, mouse.y, peak);
-        clipToMortar(ctx, mortarMask, size.w, size.h);
+        paintMortarGlow(gctx, mouse.x, mouse.y, Math.max(peak, 0.35));
       } else if (hasHeat) {
         let maxH = 0;
         let maxX = 0;
@@ -273,23 +339,27 @@ export function BrickCrackBackground({ interactive = false, className = '' }: Pr
           maxX = col * HEAT_CELL + HEAT_CELL * 0.5;
           maxY = row * HEAT_CELL + HEAT_CELL * 0.5;
         }
-        drawRadialGlow(maxX, maxY, maxH);
-        clipToMortar(ctx, mortarMask, size.w, size.h);
+        paintMortarGlow(gctx, maxX, maxY, maxH);
       }
 
-      for (let ci = 0; ci < data.length; ci++) {
-        if (!mortarGrid[ci]) continue;
-        const h = data[ci];
-        if (h < HEAT_THRESHOLD) continue;
+      paintHeatCells(gctx, data, mortarGrid, cols);
+      clipToMortar(gctx, mortarMask, size.w, size.h);
 
-        const col = ci % cols;
-        const row = (ci / cols) | 0;
-        const alpha = Math.min(MORTAR_ALPHA_MAX, h * 0.85);
-        ctx.fillStyle = `rgba(244, 228, 192, ${alpha})`;
-        ctx.fillRect(col * HEAT_CELL, row * HEAT_CELL, HEAT_CELL, HEAT_CELL);
+      const bctx = blurBuf.getContext('2d');
+      if (!bctx) {
+        scheduleTick();
+        return;
       }
+      bctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      bctx.clearRect(0, 0, size.w, size.h);
+      bctx.filter = 'blur(2.5px)';
+      bctx.drawImage(glowBuf, 0, 0, size.w, size.h);
+      bctx.filter = 'none';
 
-      clipToMortar(ctx, mortarMask, size.w, size.h);
+      ctx.clearRect(0, 0, size.w, size.h);
+      ctx.globalCompositeOperation = 'screen';
+      ctx.drawImage(blurBuf, 0, 0, size.w, size.h);
+      ctx.globalCompositeOperation = 'source-over';
 
       scheduleTick();
     };
@@ -307,6 +377,12 @@ export function BrickCrackBackground({ interactive = false, className = '' }: Pr
       }
     };
 
+    const onResize = () => {
+      const dprNext = Math.min(window.devicePixelRatio || 1, 2);
+      ensureBuffers(size.w, size.h, dprNext);
+    };
+    window.addEventListener('resize', onResize);
+
     window.addEventListener('mousemove', onMove, { passive: true });
     document.documentElement.addEventListener('mouseleave', onLeave);
     document.addEventListener('visibilitychange', onVisibility);
@@ -314,6 +390,7 @@ export function BrickCrackBackground({ interactive = false, className = '' }: Pr
     return () => {
       running = false;
       cancelAnimationFrame(raf);
+      window.removeEventListener('resize', onResize);
       window.removeEventListener('mousemove', onMove);
       document.documentElement.removeEventListener('mouseleave', onLeave);
       document.removeEventListener('visibilitychange', onVisibility);

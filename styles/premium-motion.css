@@ -150,9 +150,8 @@
 }
 
 .brick-wall-bg__glow {
-  /* Normal blend — screen was stacking overlaps into thick glow */
-  mix-blend-mode: normal;
-  opacity: 0.92;
+  mix-blend-mode: screen;
+  opacity: 1;
 }
 
 .brick-mortar-bg {

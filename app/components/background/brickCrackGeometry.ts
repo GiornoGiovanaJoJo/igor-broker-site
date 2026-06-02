@@ -41,7 +41,6 @@ export function buildBrickGrid(
   return cells;
 }
 
-/** Spatial hash: which bricks overlap a heat cell */
 export function buildBrickCellIndex(bricks: BrickCell[], cellSize: number): Map<number, BrickCell[]> {
   const map = new Map<number, BrickCell[]>();
 
@@ -82,7 +81,7 @@ export function isMortarAt(
   return true;
 }
 
-/** 1 = mortar gap, 0 = brick — one value per heat cell (no overlap) */
+/** Multi-sample so narrow mortar gaps (5px) register in coarse heat cells */
 export function buildMortarGrid(
   bricks: BrickCell[],
   cols: number,
@@ -91,12 +90,21 @@ export function buildMortarGrid(
 ): Uint8Array {
   const brickIndex = buildBrickCellIndex(bricks, cellSize);
   const grid = new Uint8Array(cols * rows);
+  const samples = [0.15, 0.5, 0.85];
 
   for (let row = 0; row < rows; row++) {
     for (let col = 0; col < cols; col++) {
-      const x = col * cellSize + cellSize * 0.5;
-      const y = row * cellSize + cellSize * 0.5;
-      grid[row * cols + col] = isMortarAt(x, y, brickIndex, cellSize) ? 1 : 0;
+      let hits = 0;
+      let total = 0;
+      for (const sx of samples) {
+        for (const sy of samples) {
+          const x = col * cellSize + cellSize * sx;
+          const y = row * cellSize + cellSize * sy;
+          total++;
+          if (isMortarAt(x, y, brickIndex, cellSize)) hits++;
+        }
+      }
+      grid[row * cols + col] = hits >= 2 ? 1 : 0;
     }
   }
 
