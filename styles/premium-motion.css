@@ -152,6 +152,7 @@
 .brick-wall-bg__glow {
   mix-blend-mode: screen;
   opacity: 1;
+  image-rendering: auto;
 }
 
 .brick-mortar-bg {
