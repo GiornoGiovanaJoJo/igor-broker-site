@@ -1,11 +1,10 @@
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import {
   buildBrickGrid,
-  buildMortarJoints,
+  buildMortarGrid,
   DESKTOP_BRICK,
   MOBILE_BRICK,
   type BrickCell,
-  type MortarJoint,
 } from './brickCrackGeometry';
 
 type Props = {
@@ -13,13 +12,13 @@ type Props = {
   className?: string;
 };
 
-/** Coarse heat grid — cheap decay + radial stamp */
 const HEAT_CELL = 40;
 const DECAY = 0.965;
 const STAMP_RADIUS = 130;
 const STAMP_PEAK = 0.55;
 const GLOW_RADIUS = 200;
-const JOINT_HEAT_THRESHOLD = 0.06;
+const HEAT_THRESHOLD = 0.06;
+const MORTAR_ALPHA_MAX = 0.72;
 
 const Brick = memo(function Brick({ brick }: { brick: BrickCell }) {
   const { x, y, w, h } = brick;
@@ -74,39 +73,6 @@ function stampRadial(
   }
 }
 
-function jointCellIndices(
-  joint: MortarJoint,
-  cols: number,
-  rows: number,
-): number[] {
-  const mx = (joint.x1 + joint.x2) * 0.5;
-  const my = (joint.y1 + joint.y2) * 0.5;
-  const col = Math.min(cols - 1, Math.max(0, Math.floor(mx / HEAT_CELL)));
-  const row = Math.min(rows - 1, Math.max(0, Math.floor(my / HEAT_CELL)));
-  const i = row * cols + col;
-  const out = [i];
-  if (col > 0) out.push(i - 1);
-  if (col < cols - 1) out.push(i + 1);
-  if (row > 0) out.push(i - cols);
-  if (row < rows - 1) out.push(i + cols);
-  return out;
-}
-
-function buildJointIndex(joints: MortarJoint[], cols: number, rows: number) {
-  const byCell = new Map<number, number[]>();
-  for (let j = 0; j < joints.length; j++) {
-    for (const cell of jointCellIndices(joints[j], cols, rows)) {
-      let list = byCell.get(cell);
-      if (!list) {
-        list = [];
-        byCell.set(cell, list);
-      }
-      if (list[list.length - 1] !== j) list.push(j);
-    }
-  }
-  return byCell;
-}
-
 function sampleHeat(
   grid: Float32Array,
   cols: number,
@@ -119,14 +85,44 @@ function sampleHeat(
   return grid[row * cols + col];
 }
 
+/** White = mortar gaps, transparent = brick faces (for destination-in clip) */
+function createMortarMaskCanvas(
+  w: number,
+  h: number,
+  bricks: BrickCell[],
+  dpr: number,
+): HTMLCanvasElement {
+  const mask = document.createElement('canvas');
+  mask.width = Math.floor(w * dpr);
+  mask.height = Math.floor(h * dpr);
+  const mctx = mask.getContext('2d');
+  if (!mctx) return mask;
+
+  mctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  mctx.fillStyle = '#fff';
+  mctx.fillRect(0, 0, w, h);
+  mctx.globalCompositeOperation = 'destination-out';
+  mctx.fillStyle = '#000';
+  for (const b of bricks) {
+    mctx.fillRect(b.x, b.y, b.w, b.h);
+  }
+  return mask;
+}
+
+function clipToMortar(ctx: CanvasRenderingContext2D, mask: HTMLCanvasElement, w: number, h: number) {
+  ctx.globalCompositeOperation = 'destination-in';
+  ctx.drawImage(mask, 0, 0, w, h);
+  ctx.globalCompositeOperation = 'source-over';
+}
+
 export function BrickCrackBackground({ interactive = false, className = '' }: Props) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const mouseRef = useRef({ x: -1, y: -1, active: false });
   const heatRef = useRef<ReturnType<typeof createHeatGrid> | null>(null);
-  const jointsRef = useRef<MortarJoint[]>([]);
-  const jointIndexRef = useRef<Map<number, number[]>>(new Map());
-  const mortarRef = useRef(5);
+  const mortarGridRef = useRef<Uint8Array>(new Uint8Array(0));
+  const mortarMaskRef = useRef<HTMLCanvasElement | null>(null);
+  const bricksRef = useRef<BrickCell[]>([]);
   const [size, setSize] = useState({ w: 1440, h: 900, mobile: false });
 
   useEffect(() => {
@@ -147,15 +143,14 @@ export function BrickCrackBackground({ interactive = false, className = '' }: Pr
     [size.w, size.h, brickSpec.w, brickSpec.h, brickSpec.mortar],
   );
 
-  const joints = useMemo(() => buildMortarJoints(bricks), [bricks]);
-
   useEffect(() => {
-    jointsRef.current = joints;
-    mortarRef.current = brickSpec.mortar;
+    bricksRef.current = bricks;
     const grid = createHeatGrid(size.w, size.h);
     heatRef.current = grid;
-    jointIndexRef.current = buildJointIndex(joints, grid.cols, grid.rows);
-  }, [joints, brickSpec.mortar, size.w, size.h]);
+    mortarGridRef.current = buildMortarGrid(bricks, grid.cols, grid.rows, HEAT_CELL);
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    mortarMaskRef.current = createMortarMaskCanvas(size.w, size.h, bricks, dpr);
+  }, [bricks, size.w, size.h]);
 
   useEffect(() => {
     if (!interactive) return;
@@ -188,7 +183,8 @@ export function BrickCrackBackground({ interactive = false, className = '' }: Pr
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       const grid = createHeatGrid(w, h);
       heatRef.current = grid;
-      jointIndexRef.current = buildJointIndex(jointsRef.current, grid.cols, grid.rows);
+      mortarGridRef.current = buildMortarGrid(bricksRef.current, grid.cols, grid.rows, HEAT_CELL);
+      mortarMaskRef.current = createMortarMaskCanvas(w, h, bricksRef.current, dpr);
     };
 
     resizeCanvas();
@@ -214,12 +210,23 @@ export function BrickCrackBackground({ interactive = false, className = '' }: Pr
       scheduleTick();
     };
 
+    const drawRadialGlow = (gx: number, gy: number, intensity: number) => {
+      const g = ctx.createRadialGradient(gx, gy, 0, gx, gy, GLOW_RADIUS);
+      g.addColorStop(0, `rgba(244, 232, 200, ${0.16 * intensity})`);
+      g.addColorStop(0.4, `rgba(184, 149, 92, ${0.07 * intensity})`);
+      g.addColorStop(1, 'rgba(184, 149, 92, 0)');
+      ctx.fillStyle = g;
+      ctx.fillRect(gx - GLOW_RADIUS, gy - GLOW_RADIUS, GLOW_RADIUS * 2, GLOW_RADIUS * 2);
+    };
+
     const tick = () => {
       if (!running) return;
       looping = false;
 
       const heat = heatRef.current;
-      if (!heat) {
+      const mortarMask = mortarMaskRef.current;
+      const mortarGrid = mortarGridRef.current;
+      if (!heat || !mortarMask) {
         scheduleTick();
         return;
       }
@@ -237,7 +244,7 @@ export function BrickCrackBackground({ interactive = false, className = '' }: Pr
 
       let hasHeat = false;
       for (let i = 0; i < data.length; i++) {
-        if (data[i] > JOINT_HEAT_THRESHOLD) {
+        if (data[i] > HEAT_THRESHOLD && mortarGrid[i]) {
           hasHeat = true;
           break;
         }
@@ -250,78 +257,39 @@ export function BrickCrackBackground({ interactive = false, className = '' }: Pr
 
       ctx.clearRect(0, 0, size.w, size.h);
 
-      let peak = 0;
       if (mouse.active) {
-        peak = sampleHeat(data, cols, rows, mouse.x, mouse.y);
-        const g = ctx.createRadialGradient(
-          mouse.x,
-          mouse.y,
-          0,
-          mouse.x,
-          mouse.y,
-          GLOW_RADIUS,
-        );
-        g.addColorStop(0, `rgba(244, 232, 200, ${0.22 * peak})`);
-        g.addColorStop(0.35, `rgba(184, 149, 92, ${0.1 * peak})`);
-        g.addColorStop(1, 'rgba(184, 149, 92, 0)');
-        ctx.fillStyle = g;
-        ctx.fillRect(mouse.x - GLOW_RADIUS, mouse.y - GLOW_RADIUS, GLOW_RADIUS * 2, GLOW_RADIUS * 2);
+        const peak = sampleHeat(data, cols, rows, mouse.x, mouse.y);
+        drawRadialGlow(mouse.x, mouse.y, peak);
+        clipToMortar(ctx, mortarMask, size.w, size.h);
       } else if (hasHeat) {
         let maxH = 0;
         let maxX = 0;
         let maxY = 0;
         for (let ci = 0; ci < data.length; ci++) {
-          if (data[ci] <= maxH) continue;
+          if (!mortarGrid[ci] || data[ci] <= maxH) continue;
           maxH = data[ci];
           const col = ci % cols;
           const row = (ci / cols) | 0;
           maxX = col * HEAT_CELL + HEAT_CELL * 0.5;
           maxY = row * HEAT_CELL + HEAT_CELL * 0.5;
         }
-        const g = ctx.createRadialGradient(maxX, maxY, 0, maxX, maxY, GLOW_RADIUS);
-        g.addColorStop(0, `rgba(244, 232, 200, ${0.18 * maxH})`);
-        g.addColorStop(0.4, `rgba(184, 149, 92, ${0.08 * maxH})`);
-        g.addColorStop(1, 'rgba(184, 149, 92, 0)');
-        ctx.fillStyle = g;
-        ctx.fillRect(maxX - GLOW_RADIUS, maxY - GLOW_RADIUS, GLOW_RADIUS * 2, GLOW_RADIUS * 2);
+        drawRadialGlow(maxX, maxY, maxH);
+        clipToMortar(ctx, mortarMask, size.w, size.h);
       }
-
-      const lineW = mortarRef.current + 1.5;
-      const jointList = jointsRef.current;
-      const jointIndex = jointIndexRef.current;
-      const drawn = new Set<number>();
-
-      ctx.lineCap = 'round';
-      ctx.lineWidth = lineW;
 
       for (let ci = 0; ci < data.length; ci++) {
-        const cellHeat = data[ci];
-        if (cellHeat < JOINT_HEAT_THRESHOLD) continue;
-        const list = jointIndex.get(ci);
-        if (!list) continue;
+        if (!mortarGrid[ci]) continue;
+        const h = data[ci];
+        if (h < HEAT_THRESHOLD) continue;
 
-        for (let k = 0; k < list.length; k++) {
-          const j = list[k];
-          if (drawn.has(j)) continue;
-          drawn.add(j);
-
-          const joint = jointList[j];
-          const h = sampleHeat(
-            data,
-            cols,
-            rows,
-            (joint.x1 + joint.x2) * 0.5,
-            (joint.y1 + joint.y2) * 0.5,
-          );
-          if (h < JOINT_HEAT_THRESHOLD) continue;
-
-          ctx.strokeStyle = `rgba(244, 228, 192, ${Math.min(0.95, h * 1.15)})`;
-          ctx.beginPath();
-          ctx.moveTo(joint.x1, joint.y1);
-          ctx.lineTo(joint.x2, joint.y2);
-          ctx.stroke();
-        }
+        const col = ci % cols;
+        const row = (ci / cols) | 0;
+        const alpha = Math.min(MORTAR_ALPHA_MAX, h * 0.85);
+        ctx.fillStyle = `rgba(244, 228, 192, ${alpha})`;
+        ctx.fillRect(col * HEAT_CELL, row * HEAT_CELL, HEAT_CELL, HEAT_CELL);
       }
+
+      clipToMortar(ctx, mortarMask, size.w, size.h);
 
       scheduleTick();
     };
@@ -330,7 +298,11 @@ export function BrickCrackBackground({ interactive = false, className = '' }: Pr
       if (document.hidden) {
         cancelAnimationFrame(raf);
         looping = false;
-      } else if (running && (mouseRef.current.active || heatRef.current?.data.some((v) => v > JOINT_HEAT_THRESHOLD))) {
+      } else if (
+        running &&
+        (mouseRef.current.active ||
+          heatRef.current?.data.some((v, i) => v > HEAT_THRESHOLD && mortarGridRef.current[i]))
+      ) {
         scheduleTick();
       }
     };

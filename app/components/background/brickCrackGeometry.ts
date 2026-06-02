@@ -8,46 +8,6 @@ export type BrickCell = {
   h: number;
 };
 
-export type MortarJoint = {
-  id: string;
-  x1: number;
-  y1: number;
-  x2: number;
-  y2: number;
-};
-
-function edgeKey(x1: number, y1: number, x2: number, y2: number): string {
-  const ax = Math.round(x1);
-  const ay = Math.round(y1);
-  const bx = Math.round(x2);
-  const by = Math.round(y2);
-  return ax < bx || (ax === bx && ay <= by) ? `${ax},${ay},${bx},${by}` : `${bx},${by},${ax},${ay}`;
-}
-
-/** Unique mortar seam segments along brick perimeters (shared edges deduped). */
-export function buildMortarJoints(bricks: BrickCell[]): MortarJoint[] {
-  const seen = new Set<string>();
-  const joints: MortarJoint[] = [];
-
-  for (const b of bricks) {
-    const edges: [number, number, number, number][] = [
-      [b.x, b.y, b.x + b.w, b.y],
-      [b.x, b.y + b.h, b.x + b.w, b.y + b.h],
-      [b.x, b.y, b.x, b.y + b.h],
-      [b.x + b.w, b.y, b.x + b.w, b.y + b.h],
-    ];
-
-    for (const [x1, y1, x2, y2] of edges) {
-      const key = edgeKey(x1, y1, x2, y2);
-      if (seen.has(key)) continue;
-      seen.add(key);
-      joints.push({ id: key, x1, y1, x2, y2 });
-    }
-  }
-
-  return joints;
-}
-
 export function buildBrickGrid(
   width: number,
   height: number,
@@ -79,6 +39,68 @@ export function buildBrickGrid(
   }
 
   return cells;
+}
+
+/** Spatial hash: which bricks overlap a heat cell */
+export function buildBrickCellIndex(bricks: BrickCell[], cellSize: number): Map<number, BrickCell[]> {
+  const map = new Map<number, BrickCell[]>();
+
+  for (const b of bricks) {
+    const c0 = Math.floor(b.x / cellSize);
+    const c1 = Math.floor((b.x + b.w) / cellSize);
+    const r0 = Math.floor(b.y / cellSize);
+    const r1 = Math.floor((b.y + b.h) / cellSize);
+
+    for (let row = r0; row <= r1; row++) {
+      for (let col = c0; col <= c1; col++) {
+        const key = row * 4096 + col;
+        const list = map.get(key);
+        if (list) list.push(b);
+        else map.set(key, [b]);
+      }
+    }
+  }
+
+  return map;
+}
+
+export function isMortarAt(
+  x: number,
+  y: number,
+  brickIndex: Map<number, BrickCell[]>,
+  cellSize: number,
+): boolean {
+  const col = Math.floor(x / cellSize);
+  const row = Math.floor(y / cellSize);
+  const list = brickIndex.get(row * 4096 + col);
+  if (!list) return true;
+
+  for (const b of list) {
+    if (x >= b.x && x < b.x + b.w && y >= b.y && y < b.y + b.h) return false;
+  }
+
+  return true;
+}
+
+/** 1 = mortar gap, 0 = brick — one value per heat cell (no overlap) */
+export function buildMortarGrid(
+  bricks: BrickCell[],
+  cols: number,
+  rows: number,
+  cellSize: number,
+): Uint8Array {
+  const brickIndex = buildBrickCellIndex(bricks, cellSize);
+  const grid = new Uint8Array(cols * rows);
+
+  for (let row = 0; row < rows; row++) {
+    for (let col = 0; col < cols; col++) {
+      const x = col * cellSize + cellSize * 0.5;
+      const y = row * cellSize + cellSize * 0.5;
+      grid[row * cols + col] = isMortarAt(x, y, brickIndex, cellSize) ? 1 : 0;
+    }
+  }
+
+  return grid;
 }
 
 export function brickGridKey(row: number, col: number): string {
