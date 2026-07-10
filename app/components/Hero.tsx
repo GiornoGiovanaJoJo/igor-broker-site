@@ -3,7 +3,9 @@ import { Send, ArrowRight } from 'lucide-react';
 import { motion } from 'motion/react';
 import { telegramDmUrl, maxWebOpenUrl, siteConfig } from '../site.config';
 import { useMotionProfile } from '../hooks/useMotionProfile';
+import { useMagnetic } from '../hooks/useMagnetic';
 import { OptimizedImage } from './OptimizedImage';
+import { CountUp } from './CountUp';
 
 const HERO_PORTRAIT = '/images/hero-portrait.png';
 const HERO_PORTRAIT_WEBP = '/images/hero-portrait.webp';
@@ -33,7 +35,8 @@ function HeroPortrait({ className, compact = false }: { className?: string; comp
 }
 
 export function Hero() {
-  const { allowContentMotion, isMobile, allowHexCrack } = useMotionProfile();
+  const { allowContentMotion, isMobile } = useMotionProfile();
+  const magneticCta = useMagnetic(0.25);
 
   const scrollToForm = () => {
     const element = document.getElementById('lead-form');
@@ -111,14 +114,17 @@ export function Hero() {
       </div>
 
       <div className="flex flex-col sm:flex-row flex-wrap gap-3">
-        <button
+        <motion.button
           type="button"
           onClick={scrollToForm}
+          style={magneticCta.style}
+          onPointerMove={magneticCta.onPointerMove}
+          onPointerLeave={magneticCta.onPointerLeave}
           className="group inline-flex items-center justify-center gap-2 px-8 py-4 rounded-2xl bg-accent text-accent-foreground hover:bg-[#c4a66a] transition-colors duration-300 border border-accent/30 shadow-[0_8px_32px_rgba(184,149,92,0.2)] active:scale-[0.99]"
         >
           <span className="font-medium tracking-wide">Запросить разбор</span>
           <ArrowRight className="w-5 h-5 group-hover:translate-x-0.5 transition-transform duration-300" />
-        </button>
+        </motion.button>
         <button
           type="button"
           onClick={() => window.open(telegramDmUrl(), '_blank')}
@@ -146,12 +152,14 @@ export function Hero() {
                 <span className="text-[11px] sm:text-[12px] text-muted-foreground font-medium tracking-wide uppercase leading-snug">
                   {stat.top}
                 </span>
-                <span className="text-[17px] sm:text-[19px] font-semibold text-accent font-display mt-1">{stat.accent}</span>
+                <span className="text-[17px] sm:text-[19px] font-semibold text-accent font-display mt-1">
+                  <CountUp value={stat.accent} />
+                </span>
               </>
             ) : (
               <>
                 <span className="text-[26px] sm:text-[30px] font-semibold text-accent font-display leading-none">
-                  {stat.value}
+                  <CountUp value={stat.value} />
                 </span>
                 <span className="text-[11px] text-muted-foreground font-medium tracking-wide uppercase mt-2">{stat.label}</span>
               </>
@@ -173,7 +181,7 @@ export function Hero() {
 
   return (
     <section className="relative pt-28 sm:pt-32 pb-16 sm:pb-20 px-4 sm:px-6 lg:px-8 overflow-hidden">
-      <div className="max-w-7xl mx-auto">
+      <div className="relative max-w-7xl mx-auto">
         <div className="grid lg:grid-cols-2 gap-10 lg:gap-12 items-center">
           {isMobile || !allowContentMotion ? (
             <div className={leftColumnClass}>{heroContent}</div>
@@ -185,7 +193,7 @@ export function Hero() {
 
           <motion.div className="relative hidden lg:block" {...portraitMotion}>
             <HeroPortrait />
-            {allowContentMotion && !allowHexCrack && (
+            {allowContentMotion && (
               <>
                 <div className="absolute -top-4 -right-4 w-28 h-28 bg-accent/6 rounded-full blur-3xl -z-10 perf-hide-blur-orbs" />
                 <div className="absolute -bottom-4 -left-4 w-36 h-36 bg-muted rounded-full blur-3xl -z-10 opacity-80 perf-hide-blur-orbs" />

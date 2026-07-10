@@ -6,6 +6,7 @@ import { TermsPage } from './pages/TermsPage';
 import { WorkPage } from './pages/WorkPage';
 import { CookieBanner } from './components/CookieBanner';
 import { MetrikaTracker } from './components/MetrikaTracker';
+import { ScrollProgress } from './components/ScrollProgress';
 
 const InsightsPage = lazy(() => import('./pages/InsightsPage').then((m) => ({ default: m.InsightsPage })));
 const InsightPostPage = lazy(() => import('./pages/InsightPostPage').then((m) => ({ default: m.InsightPostPage })));
@@ -21,6 +22,7 @@ function PageFallback() {
 export default function App() {
   return (
     <>
+      <ScrollProgress />
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route

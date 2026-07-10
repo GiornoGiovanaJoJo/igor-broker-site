@@ -3,9 +3,12 @@ import { Send, TrendingUp } from 'lucide-react';
 import { motion } from 'motion/react';
 import { telegramChannelUrl } from '../site.config';
 import { useMotionProfile } from '../hooks/useMotionProfile';
+import { useMagnetic } from '../hooks/useMagnetic';
+import { CountUp } from './CountUp';
 
 export function TelegramCTA() {
   const { allowHeavyEffects, allowContentMotion } = useMotionProfile();
+  const magneticCta = useMagnetic(0.25);
 
   const inView = !allowContentMotion
     ? {}
@@ -53,14 +56,17 @@ export function TelegramCTA() {
           Отобранные материалы по новостройкам, ставкам и застройщикам — без шума и массовых рассылок
         </motion.p>
 
-        <button
+        <motion.button
           type="button"
           onClick={() => window.open(telegramChannelUrl(), '_blank')}
+          style={magneticCta.style}
+          onPointerMove={magneticCta.onPointerMove}
+          onPointerLeave={magneticCta.onPointerLeave}
           className="inline-flex items-center gap-3 px-10 py-5 rounded-2xl bg-accent text-accent-foreground hover:bg-[#c4a66a] transition-colors duration-300 font-medium text-[16px] tracking-wide border border-accent/35 shadow-[0_12px_40px_rgba(184,149,92,0.2)] active:scale-[0.98]"
         >
           <Send className="w-5 h-5" />
           <span>Подписаться</span>
-        </button>
+        </motion.button>
 
         <div className="mt-14 sm:mt-16 pt-10 sm:pt-12 border-t border-border">
           <div className="cards-grid sm:grid-cols-3">
@@ -70,7 +76,9 @@ export function TelegramCTA() {
               { value: '3–5', label: 'материалов в неделю' },
             ].map((stat) => (
               <div key={stat.label} className="flex flex-col items-center justify-center text-center py-2">
-                <div className="mb-2 font-display text-[32px] font-semibold text-accent sm:text-[40px]">{stat.value}</div>
+                <div className="mb-2 font-display text-[32px] font-semibold text-accent sm:text-[40px]">
+                  <CountUp value={stat.value} />
+                </div>
                 <div className="min-h-[2.5rem] text-[14px] tracking-wide text-muted-foreground">{stat.label}</div>
               </div>
             ))}

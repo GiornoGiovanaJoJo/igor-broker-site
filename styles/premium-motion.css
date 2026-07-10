@@ -131,37 +131,127 @@
   }
 }
 
-/* ── Brick wall background (mortar joint glow on desktop) ── */
+/* ── Aurora field background (desktop ambient motion) ── */
 
-.brick-wall-bg {
-  position: absolute;
-  inset: 0;
+.aurora-field {
   pointer-events: none;
-  overflow: hidden;
 }
 
-.brick-wall-bg__svg,
-.brick-wall-bg__glow {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  display: block;
+.aurora-dot-grid {
+  background-image: radial-gradient(circle, rgba(212, 188, 132, 0.5) 1px, transparent 1px);
+  background-size: 32px 32px;
+  opacity: 0.09;
+  animation: aurora-grid-drift 90s linear infinite;
 }
 
-.brick-wall-bg__glow {
-  mix-blend-mode: screen;
-  opacity: 1;
-  image-rendering: auto;
+.aurora-blob {
+  filter: blur(80px);
+  will-change: transform, opacity;
 }
 
-.brick-mortar-bg {
-  fill: #070708;
+.aurora-blob-a {
+  background: radial-gradient(circle, rgba(184, 149, 92, 0.32) 0%, transparent 70%);
+  animation: aurora-drift-a 34s ease-in-out infinite;
 }
 
-.brick-face {
-  fill: url(#brick-face-grad);
-  opacity: calc(0.58 + var(--brick-shade, 0.04));
-  stroke: rgba(212, 188, 132, 0.04);
-  stroke-width: 0.5;
+.aurora-blob-b {
+  background: radial-gradient(circle, rgba(212, 188, 132, 0.26) 0%, transparent 70%);
+  animation: aurora-drift-b 40s ease-in-out infinite;
+}
+
+.aurora-blob-c {
+  background: radial-gradient(circle, rgba(244, 241, 234, 0.1) 0%, transparent 70%);
+  animation: aurora-drift-c 26s ease-in-out infinite;
+}
+
+.aurora-blob-d {
+  background: radial-gradient(circle, rgba(120, 108, 88, 0.22) 0%, transparent 70%);
+  animation: aurora-drift-d 46s ease-in-out infinite;
+}
+
+.aurora-sweep {
+  background: linear-gradient(105deg, transparent 42%, rgba(244, 232, 200, 0.07) 50%, transparent 58%);
+  background-size: 300% 100%;
+  animation: aurora-sweep 16s ease-in-out infinite;
+}
+
+@keyframes aurora-grid-drift {
+  0% {
+    background-position: 0 0;
+  }
+  100% {
+    background-position: 320px 320px;
+  }
+}
+
+@keyframes aurora-drift-a {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+    opacity: 0.55;
+  }
+  50% {
+    transform: translate(6%, 5%) scale(1.12);
+    opacity: 0.85;
+  }
+}
+
+@keyframes aurora-drift-b {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+    opacity: 0.5;
+  }
+  50% {
+    transform: translate(-5%, -6%) scale(1.1);
+    opacity: 0.8;
+  }
+}
+
+@keyframes aurora-drift-c {
+  0%,
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0.4;
+  }
+  50% {
+    transform: translate(-46%, -54%) scale(1.15);
+    opacity: 0.7;
+  }
+}
+
+@keyframes aurora-drift-d {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+    opacity: 0.45;
+  }
+  50% {
+    transform: translate(4%, -4%) scale(1.08);
+    opacity: 0.7;
+  }
+}
+
+@keyframes aurora-sweep {
+  0%,
+  70% {
+    background-position: 200% 0;
+  }
+  85% {
+    background-position: -20% 0;
+  }
+  100% {
+    background-position: -20% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aurora-dot-grid,
+  .aurora-blob-a,
+  .aurora-blob-b,
+  .aurora-blob-c,
+  .aurora-blob-d,
+  .aurora-sweep {
+    animation: none !important;
+  }
 }

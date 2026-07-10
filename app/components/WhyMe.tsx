@@ -1,6 +1,7 @@
 import React from 'react';
 import { Briefcase, Calculator, Building2, LineChart } from 'lucide-react';
 import { motion, useReducedMotion, type Variants } from 'motion/react';
+import { CountUp } from './CountUp';
 
 type Reason = {
   index: string;
@@ -256,7 +257,9 @@ export function WhyMe() {
         >
           {TRUST_STATS.map((stat) => (
             <div key={stat.label} className="text-center sm:text-left">
-              <p className="font-display text-[28px] font-semibold leading-none text-accent sm:text-[32px]">{stat.value}</p>
+              <p className="font-display text-[28px] font-semibold leading-none text-accent sm:text-[32px]">
+                <CountUp value={stat.value} />
+              </p>
               <p className="mt-2 text-[12px] font-medium uppercase tracking-[0.18em] text-muted-foreground">{stat.label}</p>
             </div>
           ))}

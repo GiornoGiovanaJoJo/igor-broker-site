@@ -75,13 +75,19 @@ export function FAQ() {
                   />
                 </button>
                 <div
-                  id={`faq-panel-${index}`}
-                  role="region"
-                  aria-labelledby={`faq-trigger-${index}`}
-                  hidden={!isOpen}
-                  className={`${isOpen ? 'block' : 'hidden'} px-5 pb-5 pt-0 border-t border-border/60`}
+                  className="grid transition-[grid-template-rows] duration-[400ms] ease-[cubic-bezier(0.22,1,0.36,1)]"
+                  style={{ gridTemplateRows: isOpen ? '1fr' : '0fr' }}
                 >
-                  <p className="pt-4 text-[14px] leading-relaxed text-muted-foreground text-pretty">{item.a}</p>
+                  <div
+                    id={`faq-panel-${index}`}
+                    role="region"
+                    aria-labelledby={`faq-trigger-${index}`}
+                    className="overflow-hidden"
+                  >
+                    <div className={`px-5 pb-5 pt-0 ${isOpen ? 'border-t border-border/60' : ''}`}>
+                      <p className="pt-4 text-[14px] leading-relaxed text-muted-foreground text-pretty">{item.a}</p>
+                    </div>
+                  </div>
                 </div>
               </motion.div>
             );

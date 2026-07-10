@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Phone, Send, Menu, X } from 'lucide-react';
+import { motion } from 'motion/react';
 import { siteConfig, telegramDmUrl, maxWebOpenUrl } from '../site.config';
+import { useMagnetic } from '../hooks/useMagnetic';
 
 const NAV = [
   { id: 'for-whom', label: 'Для кого' },
@@ -19,6 +21,7 @@ export function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
   const isHome = location.pathname === '/';
+  const magneticCta = useMagnetic(0.3);
 
   useEffect(() => {
     let ticking = false;
@@ -98,13 +101,19 @@ export function Header() {
                 <Link
                   key={item.to}
                   to={item.to}
-                  className={`whitespace-nowrap text-[14px] tracking-wide transition-colors duration-300 ${
+                  className={`group relative whitespace-nowrap py-1 text-[14px] tracking-wide transition-colors duration-300 ${
                     item.accent
                       ? 'text-accent/95 hover:text-accent font-medium'
                       : 'text-foreground/88 hover:text-accent'
                   } ${location.pathname.startsWith(item.to) ? 'text-accent' : ''}`}
                 >
                   {item.label}
+                  <span
+                    className={`pointer-events-none absolute -bottom-1 left-0 h-px w-full origin-left scale-x-0 bg-gradient-to-r from-accent/80 to-accent/20 transition-transform duration-300 ease-out group-hover:scale-x-100 ${
+                      location.pathname.startsWith(item.to) ? 'scale-x-100' : ''
+                    }`}
+                    aria-hidden
+                  />
                 </Link>
               ))}
               {NAV.map((item) => (
@@ -112,9 +121,13 @@ export function Header() {
                   key={item.id}
                   type="button"
                   onClick={() => handleNav(item.id)}
-                  className="whitespace-nowrap text-[14px] text-foreground/88 hover:text-accent transition-colors duration-300 tracking-wide"
+                  className="group relative whitespace-nowrap py-1 text-[14px] text-foreground/88 hover:text-accent transition-colors duration-300 tracking-wide"
                 >
                   {item.label}
+                  <span
+                    className="pointer-events-none absolute -bottom-1 left-0 h-px w-full origin-left scale-x-0 bg-gradient-to-r from-accent/80 to-accent/20 transition-transform duration-300 ease-out group-hover:scale-x-100"
+                    aria-hidden
+                  />
                 </button>
               ))}
             </nav>
@@ -137,14 +150,17 @@ export function Header() {
                 <span className="text-accent/95">MAX</span>
                 <span className="text-muted-foreground text-[13px] tabular-nums">{siteConfig.maxPhoneTel}</span>
               </a>
-              <button
+              <motion.button
                 type="button"
                 onClick={() => handleNav('lead-form')}
+                style={magneticCta.style}
+                onPointerMove={magneticCta.onPointerMove}
+                onPointerLeave={magneticCta.onPointerLeave}
                 className="hidden sm:flex items-center gap-2 px-5 py-2.5 rounded-lg bg-accent text-accent-foreground hover:bg-[#c4a66a] transition-all duration-300 shadow-[0_4px_24px_rgba(184,149,92,0.22)] whitespace-nowrap"
               >
                 <Phone className="w-4 h-4" aria-hidden />
                 <span className="text-[14px] font-medium">Запрос</span>
-              </button>
+              </motion.button>
 
               <button
                 type="button"
